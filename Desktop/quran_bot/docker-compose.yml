@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: quran-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - TELEGRAM_BOT_TOKEN=${7956545337:AAGAl_fg_R14FDzx8iyA5CWEFMn3xl3DK7k}
+      - ADMIN_ID=${7509151895}
+      - MONGO_URI=mongodb://mongo:27017/quran_bot
+      - IMPORT_CHANNEL_ID=${IMPORT_CHANNEL_ID}
+      - DEFAULT_LANGUAGE=${UZBEK}
+    depends_on:
+      - mongo
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - bot-network
+
+  mongo:
+    image: mongo:5
+    container_name: quran-bot-mongo
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_DATABASE=quran_bot
+    volumes:
+      - mongo_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - bot-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: quran-bot-mongo-express
+    restart: unless-stopped
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=password123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - mongo
+    networks:
+      - bot-network
+
+volumes:
+  mongo_data:
+
+networks:
+  bot-network:
+    driver: bridge
