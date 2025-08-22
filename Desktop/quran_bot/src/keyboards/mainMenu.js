@@ -14,7 +14,7 @@ export function mainMenuKeyboard(userLanguage = "uzbek") {
         [
           {
             text: "🛍️ Mahsulotlar katalogi",
-            web_app: { url: "https://your-webapp-url.com" },
+            web_app: { url: "https://rahmonov-abdulquddus.github.io/den-aroma-webapp" },
           },
         ],
         [

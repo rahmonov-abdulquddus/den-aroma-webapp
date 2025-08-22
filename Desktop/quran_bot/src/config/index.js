@@ -5,7 +5,7 @@ const config = {
   importChannelId: "-4959377401", // Yangi test guruhining ID si
   defaultLanguage: "uzbek",
   botUsername: "den_aroma_bot",
-  webAppUrl: "https://your-webapp-url.com", // Web App URL'ini keyin qo'shamiz
+  webAppUrl: "https://rahmonov-abdulquddus.github.io/den-aroma-webapp", // GitHub Pages URL
 };
 
 export default config;
