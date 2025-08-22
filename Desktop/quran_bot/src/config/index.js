@@ -5,7 +5,7 @@ const config = {
   importChannelId: "-4959377401", // Yangi test guruhining ID si
   defaultLanguage: "uzbek",
   botUsername: "den_aroma_bot",
-  webAppUrl: "https://rahmonov-abdulquddus.github.io/den-aroma-webapp", // GitHub Pages URL
+  webAppUrl: "https://den-aroma-webapp-1.vercel.app", // Vercel URL
 };
 
 export default config;
