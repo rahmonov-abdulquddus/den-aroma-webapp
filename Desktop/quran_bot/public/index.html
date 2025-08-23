@@ -13,49 +13,225 @@
   </head>
   <body>
     <div class="container">
+      <!-- Header Section -->
       <header class="header">
-        <div class="header-content">
-          <div class="logo">
-            <i class="fas fa-store"></i>
-            <h1>Den Aroma Oqbilol</h1>
-          </div>
-          <p class="subtitle">Premium mahsulotlar va sifatli xizmat</p>
+        <!-- Top Status Bar -->
+        <div class="status-bar">
+          <div class="time">12:26</div>
+          <div class="network">LTE 35</div>
         </div>
+        
+        <!-- Location Selector -->
+        <div class="location-selector">
+          <div class="location-info">
+            <i class="fas fa-map-marker-alt"></i>
+            <span class="city">Toshkent</span>
+            <i class="fas fa-chevron-down"></i>
+          </div>
+          <div class="delivery-info">yetkazib beriladigan shahar</div>
+        </div>
+        
+        <!-- Search Bar -->
         <div class="search-container">
           <div class="search-box">
             <i class="fas fa-search"></i>
             <input
               type="text"
               id="searchInput"
-              placeholder="Mahsulot qidirish..."
+              placeholder="Mahsulotlar va turkumlar qidirish"
             />
+            <i class="fas fa-heart favorites-btn"></i>
           </div>
         </div>
       </header>
 
+      <!-- Main Content -->
       <main class="main">
+        <!-- Promotional Banner -->
+        <div class="promo-banner">
+          <div class="promo-content">
+            <div class="promo-icon">
+              <i class="fas fa-gift"></i>
+            </div>
+            <div class="promo-text">
+              <h3>Den Aroma Oqbilol</h3>
+              <p>Premium mahsulotlar va sifatli xizmat</p>
+            </div>
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div class="categories-section">
+          <div class="categories-grid">
+            <div class="category-item" onclick="showCategory('food')">
+              <div class="category-icon food">
+                <i class="fas fa-utensils"></i>
+              </div>
+              <span>Taom yetkazib ber...</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('sports')">
+              <div class="category-icon sports">
+                <i class="fas fa-basketball-ball"></i>
+              </div>
+              <span>Sport va dam olish</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('discounts')">
+              <div class="category-icon discounts">
+                <i class="fas fa-tags"></i>
+              </div>
+              <span>Arzon narxlar kafolati</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('family')">
+              <div class="category-icon family">
+                <i class="fas fa-baby"></i>
+              </div>
+              <span>Onalar va bolalar uchun</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('market')">
+              <div class="category-icon market">
+                <i class="fas fa-shopping-bag"></i>
+              </div>
+              <span>Zamonaviy Bozor</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('cards')">
+              <div class="category-icon cards">
+                <i class="fas fa-credit-card"></i>
+              </div>
+              <span>Karta ochish</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('auto')">
+              <div class="category-icon auto">
+                <i class="fas fa-car"></i>
+              </div>
+              <span>Den Aroma Avto</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('repair')">
+              <div class="category-icon repair">
+                <i class="fas fa-tools"></i>
+              </div>
+              <span>Remont uchun ham...</span>
+            </div>
+            
+            <div class="category-item" onclick="showCategory('school')">
+              <div class="category-icon school">
+                <i class="fas fa-graduation-cap"></i>
+              </div>
+              <span>Maktab bozori</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Weekly Discounts -->
+        <div class="discounts-section">
+          <div class="discounts-header">
+            <h3>Haftalik chegirmalar</h3>
+            <div class="time-left">
+              <i class="fas fa-clock"></i>
+              <span>2 kun qoldi</span>
+            </div>
+          </div>
+          
+          <div class="discounts-carousel">
+            <div class="discount-card">
+              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol">
+              <div class="discount-info">
+                <h4>Aroma Oqbilol Premium</h4>
+                <p class="discount-price">250,000 so'm</p>
+                <p class="original-price">300,000 so'm</p>
+              </div>
+            </div>
+            
+            <div class="discount-card">
+              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol Classic">
+              <div class="discount-info">
+                <h4>Aroma Oqbilol Classic</h4>
+                <p class="discount-price">180,000 so'm</p>
+                <p class="original-price">220,000 so'm</p>
+              </div>
+            </div>
+            
+            <div class="discount-card">
+              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol Deluxe">
+              <div class="discount-info">
+                <h4>Aroma Oqbilol Deluxe</h4>
+                <p class="discount-price">320,000 so'm</p>
+                <p class="original-price">400,000 so'm</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Catalog -->
         <div class="catalog" id="catalog">
-          <!-- Mahsulotlar bu yerda ko'rsatiladi -->
+          <!-- Products will be displayed here -->
+        </div>
+        
+        <!-- Cart -->
+        <div class="cart" id="cart" style="display: none;">
+          <!-- Cart items will be displayed here -->
         </div>
 
-        <div class="cart" id="cart" style="display: none">
-          <!-- Savatcha bu yerda ko'rsatiladi -->
+        <!-- Profile -->
+        <div class="profile" id="profile" style="display: none;">
+          <!-- Profile content will be displayed here -->
         </div>
 
-        <div class="profile" id="profile" style="display: none">
-          <!-- Profil bu yerda ko'rsatiladi -->
+        <!-- Location Selection Modal -->
+        <div class="location-modal" id="locationModal" style="display: none;">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Manzil tanlash</h3>
+              <button class="close-btn" onclick="closeLocationModal()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div class="location-options">
+              <div class="location-option" onclick="selectLocation('current')">
+                <i class="fas fa-location-arrow"></i>
+                <span>Hozirgi joylashuv</span>
+              </div>
+              
+              <div class="location-option" onclick="selectLocation('manual')">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Qo'lda kiritish</span>
+              </div>
+              
+              <div class="location-option" onclick="selectLocation('saved')">
+                <i class="fas fa-bookmark"></i>
+                <span>Saqlangan manzillar</span>
+              </div>
+            </div>
+          </div>
         </div>
       </main>
-
+      
+      <!-- Bottom Navigation -->
       <nav class="navigation">
         <button class="nav-btn active" onclick="showCatalog()">
+          <i class="fas fa-home"></i>
+          <span>Bosh sahifa</span>
+        </button>
+        <button class="nav-btn" onclick="showCatalog()">
           <i class="fas fa-th-large"></i>
           <span>Katalog</span>
         </button>
         <button class="nav-btn" onclick="showCart()">
           <i class="fas fa-shopping-cart"></i>
-          <span>Savatcha</span>
+          <span>Savat</span>
           <span class="cart-badge" id="cartBadge">0</span>
+        </button>
+        <button class="nav-btn" onclick="showQuickOrder()">
+          <i class="fas fa-bolt"></i>
+          <span>Tezkor</span>
         </button>
         <button class="nav-btn" onclick="showProfile()">
           <i class="fas fa-user"></i>
@@ -63,7 +239,7 @@
         </button>
       </nav>
     </div>
-
+    
     <script src="app.js"></script>
   </body>
 </html>
