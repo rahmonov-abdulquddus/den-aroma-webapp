@@ -56,7 +56,7 @@ const productSchema = new mongoose.Schema({
       "Hojalik anjomlari",
       "Yangi",
       "Atirlar",
-      "Boshqa"
+      "Boshqa",
     ],
     default: "other",
   },

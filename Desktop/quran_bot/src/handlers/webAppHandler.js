@@ -77,12 +77,21 @@ async function handleAdminAction(adminId, data) {
       case "edit_category":
         return await editCategory(adminId, data.categoryId, data.categoryData);
 
-      case "delete_category":
+            case "delete_category":
         return await deleteCategory(adminId, data.categoryId);
-
+      
+      case "approve_product":
+        return await approveProduct(adminId, data.productId);
+      
+      case "reject_product":
+        return await rejectProduct(adminId, data.productId, data.reason);
+      
+      case "update_pending_product":
+        return await updatePendingProduct(adminId, data.productId, data.productData);
+      
       case "get_products":
         return await getProducts(adminId, data.filters);
-
+      
       case "get_categories":
         return await getCategories(adminId);
 
@@ -211,6 +220,100 @@ async function editCategory(adminId, categoryId, categoryData) {
   } catch (error) {
     console.error("Kategoriyani tahrirlashda xatolik:", error);
     return { success: false, message: "Kategoriyani tahrirlashda xatolik" };
+  }
+}
+
+// Mahsulotni tasdiqlash
+async function approveProduct(adminId, productId) {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { 
+        needsReview: false,
+        isActive: true,
+        approvedBy: adminId,
+        approvedAt: new Date()
+      },
+      { new: true }
+    );
+    
+    if (!product) {
+      return { success: false, message: "Mahsulot topilmadi" };
+    }
+    
+    logAdminAction(adminId, "product_approved", { productId });
+    
+    return {
+      success: true,
+      message: "Mahsulot muvaffaqiyatli tasdiqlandi va Web App'ga qo'shildi!",
+    };
+  } catch (error) {
+    console.error("Mahsulotni tasdiqlashda xatolik:", error);
+    return { success: false, message: "Mahsulotni tasdiqlashda xatolik yuz berdi" };
+  }
+}
+
+// Mahsulotni rad etish
+async function rejectProduct(adminId, productId, reason) {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { 
+        needsReview: false,
+        isActive: false,
+        rejectedBy: adminId,
+        rejectedAt: new Date(),
+        rejectionReason: reason
+      },
+      { new: true }
+    );
+    
+    if (!product) {
+      return { success: false, message: "Mahsulot topilmadi" };
+    }
+    
+    logAdminAction(adminId, "product_rejected", { productId, reason });
+    
+    return {
+      success: true,
+      message: "Mahsulot rad etildi!",
+    };
+  } catch (error) {
+    console.error("Mahsulotni rad etishda xatolik:", error);
+    return { success: false, message: "Mahsulotni rad etishda xatolik yuz berdi" };
+  }
+}
+
+// Ko'rib chiqilishi kerak mahsulotni yangilash va tasdiqlash
+async function updatePendingProduct(adminId, productId, productData) {
+  try {
+    const product = await Product.findByIdAndUpdate(
+      productId,
+      { 
+        ...productData,
+        needsReview: false,
+        isActive: true,
+        approvedBy: adminId,
+        approvedAt: new Date(),
+        updatedBy: adminId,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+    
+    if (!product) {
+      return { success: false, message: "Mahsulotni tasdiqlashda xatolik yuz berdi" };
+    }
+    
+    logAdminAction(adminId, "pending_product_updated", { productId });
+    
+    return {
+      success: true,
+      message: "Mahsulot muvaffaqiyatli yangilandi va tasdiqlandi!",
+    };
+  } catch (error) {
+    console.error("Ko'rib chiqilishi kerak mahsulotni yangilashda xatolik:", error);
+    return { success: false, message: "Mahsulotni yangilashda xatolik yuz berdi" };
   }
 }
 
