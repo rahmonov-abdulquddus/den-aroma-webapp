@@ -25,14 +25,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   // Kategoriyalarni yuklash
   await loadCategories();
 
-      // Mahsulotlarni yuklash
-    await loadProducts();
-    
-    // Ko'rib chiqilishi kerak mahsulotlarni yuklash
-    await loadPendingProducts();
-    
-    // Form submit event'larini o'rnatish
-    setupFormEvents();
+  // Mahsulotlarni yuklash
+  await loadProducts();
+
+  // Ko'rib chiqilishi kerak mahsulotlarni yuklash
+  await loadPendingProducts();
+
+  // Form submit event'larini o'rnatish
+  setupFormEvents();
 });
 
 // Statistikalarni yuklash
@@ -113,7 +113,10 @@ async function loadPendingProducts() {
     pendingProducts = await response.json();
     displayPendingProducts(pendingProducts);
   } catch (error) {
-    console.error("Ko'rib chiqilishi kerak mahsulotlarni yuklashda xatolik:", error);
+    console.error(
+      "Ko'rib chiqilishi kerak mahsulotlarni yuklashda xatolik:",
+      error
+    );
   }
 }
 
@@ -157,34 +160,42 @@ function displayProducts(productsToShow) {
 
 // Ko'rib chiqilishi kerak mahsulotlarni ko'rsatish
 function displayPendingProducts(pendingProductsToShow) {
-  const grid = document.getElementById('pendingProductsGrid');
+  const grid = document.getElementById("pendingProductsGrid");
   if (!grid) return;
-  
-  grid.innerHTML = '';
-  
+
+  grid.innerHTML = "";
+
   if (pendingProductsToShow.length === 0) {
-    grid.innerHTML = '<p>Ko\'rib chiqilishi kerak mahsulot yo\'q</p>';
+    grid.innerHTML = "<p>Ko'rib chiqilishi kerak mahsulot yo'q</p>";
     return;
   }
-  
-  pendingProductsToShow.forEach(product => {
-    const card = document.createElement('div');
-    card.className = 'product-card';
-    
+
+  pendingProductsToShow.forEach((product) => {
+    const card = document.createElement("div");
+    card.className = "product-card";
+
     card.innerHTML = `
-      <img src="${product.image || 'https://via.placeholder.com/300x200?text=No+Image'}" 
+      <img src="${
+        product.image || "https://via.placeholder.com/300x200?text=No+Image"
+      }" 
            alt="${product.name}" class="product-image">
       <div class="product-info">
         <div class="product-name">${product.name}</div>
         <div class="product-price">${product.price?.toLocaleString()} so'm</div>
         <div class="product-actions">
-          <button class="btn-edit" onclick="approveProduct('${product._id}')">✅ Tasdiqlash</button>
-          <button class="btn-edit" onclick="editPendingProduct('${product._id}')">✏️ Tahrirlash</button>
-          <button class="btn-delete" onclick="rejectProduct('${product._id}')">❌ Rad etish</button>
+          <button class="btn-edit" onclick="approveProduct('${
+            product._id
+          }')">✅ Tasdiqlash</button>
+          <button class="btn-edit" onclick="editPendingProduct('${
+            product._id
+          }')">✏️ Tahrirlash</button>
+          <button class="btn-delete" onclick="rejectProduct('${
+            product._id
+          }')">❌ Rad etish</button>
         </div>
       </div>
     `;
-    
+
     grid.appendChild(card);
   });
 }
@@ -503,22 +514,24 @@ async function editCategory(categoryId) {
 // Mahsulotni tasdiqlash
 async function approveProduct(productId) {
   if (!confirm("Bu mahsulotni tasdiqlashni xohlaysizmi?")) return;
-  
+
   try {
     const data = {
       action: "admin_action",
       command: "approve_product",
       productId: productId,
     };
-    
+
     tg.sendData(JSON.stringify(data));
-    
+
     // Ma'lumotlarni yangilash
     await loadPendingProducts();
     await loadProducts();
     await loadStats();
-    
-    showSuccessMessage("Mahsulot muvaffaqiyatli tasdiqlandi va Web App'ga qo'shildi!");
+
+    showSuccessMessage(
+      "Mahsulot muvaffaqiyatli tasdiqlandi va Web App'ga qo'shildi!"
+    );
   } catch (error) {
     console.error("Mahsulotni tasdiqlashda xatolik:", error);
     showErrorMessage("Mahsulotni tasdiqlashda xatolik yuz berdi");
@@ -528,8 +541,8 @@ async function approveProduct(productId) {
 // Mahsulotni rad etish
 async function rejectProduct(productId) {
   const reason = prompt("Rad etish sababini kiriting:");
-  if (!reason || reason.trim() === '') return;
-  
+  if (!reason || reason.trim() === "") return;
+
   try {
     const data = {
       action: "admin_action",
@@ -537,13 +550,13 @@ async function rejectProduct(productId) {
       productId: productId,
       reason: reason.trim(),
     };
-    
+
     tg.sendData(JSON.stringify(data));
-    
+
     // Ma'lumotlarni yangilash
     await loadPendingProducts();
     await loadStats();
-    
+
     showSuccessMessage("Mahsulot rad etildi!");
   } catch (error) {
     console.error("Mahsulotni rad etishda xatolik:", error);
@@ -553,64 +566,63 @@ async function rejectProduct(productId) {
 
 // Ko'rib chiqilishi kerak mahsulotni tahrirlash
 async function editPendingProduct(productId) {
-  const product = pendingProducts.find(p => p._id === productId);
+  const product = pendingProducts.find((p) => p._id === productId);
   if (!product) return;
-  
+
   // Tahrirlash form'ini ko'rsatish
-  showTab('add-product');
-  
+  showTab("add-product");
+
   // Form'ni to'ldirish
-  document.getElementById('productName').value = product.name;
-  document.getElementById('productDescription').value = product.description;
-  document.getElementById('productPrice').value = product.price;
-  document.getElementById('productCategory').value = product.categoryId || '';
-  document.getElementById('productImage').value = product.image || '';
-  document.getElementById('productStock').value = product.stock || 1;
-  
+  document.getElementById("productName").value = product.name;
+  document.getElementById("productDescription").value = product.description;
+  document.getElementById("productPrice").value = product.price;
+  document.getElementById("productCategory").value = product.categoryId || "";
+  document.getElementById("productImage").value = product.image || "";
+  document.getElementById("productStock").value = product.stock || 1;
+
   // Form submit event'ini o'zgartirish
-  const form = document.getElementById('addProductForm');
+  const form = document.getElementById("addProductForm");
   form.onsubmit = async (e) => {
     e.preventDefault();
     await updatePendingProduct(productId);
   };
-  
+
   // Button matnini o'zgartirish
   const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.textContent = '💾 Mahsulotni yangilash va tasdiqlash';
+  submitBtn.textContent = "💾 Mahsulotni yangilash va tasdiqlash";
 }
 
 // Ko'rib chiqilishi kerak mahsulotni yangilash
 async function updatePendingProduct(productId) {
   try {
     const productData = {
-      name: document.getElementById('productName').value,
-      description: document.getElementById('productDescription').value,
-      price: parseInt(document.getElementById('productPrice').value),
-      categoryId: document.getElementById('productCategory').value || null,
-      image: document.getElementById('productImage').value || null,
-      stock: parseInt(document.getElementById('productStock').value) || 1,
+      name: document.getElementById("productName").value,
+      description: document.getElementById("productDescription").value,
+      price: parseInt(document.getElementById("productPrice").value),
+      categoryId: document.getElementById("productCategory").value || null,
+      image: document.getElementById("productImage").value || null,
+      stock: parseInt(document.getElementById("productStock").value) || 1,
     };
-    
+
     const data = {
       action: "admin_action",
       command: "update_pending_product",
       productId: productId,
       productData: productData,
     };
-    
+
     tg.sendData(JSON.stringify(data));
-    
+
     // Form'ni tozalash va ko'rib chiqilishi kerak tab'iga qaytish
-    document.getElementById('addProductForm').reset();
-    showTab('pending');
-    
+    document.getElementById("addProductForm").reset();
+    showTab("pending");
+
     // Ma'lumotlarni yangilash
     await loadPendingProducts();
     await loadProducts();
     await loadStats();
-    
+
     showSuccessMessage("Mahsulot muvaffaqiyatli yangilandi va tasdiqlandi!");
-    
   } catch (error) {
     console.error("Mahsulotni yangilashda xatolik:", error);
     showErrorMessage("Mahsulotni yangilashda xatolik yuz berdi");
@@ -620,20 +632,20 @@ async function updatePendingProduct(productId) {
 // Kategoriyani o'chirish
 async function deleteCategory(categoryId) {
   if (!confirm("Bu kategoriyani o'chirishni xohlaysizmi?")) return;
-  
+
   try {
     const data = {
       action: "admin_action",
       command: "delete_category",
       categoryId: categoryId,
     };
-    
+
     tg.sendData(JSON.stringify(data));
-    
+
     // Ma'lumotlarni yangilash
     await loadCategories();
     await loadStats();
-    
+
     showSuccessMessage("Kategoriya muvaffaqiyatli o'chirildi!");
   } catch (error) {
     console.error("Kategoriyani o'chirishda xatolik:", error);

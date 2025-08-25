@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Den Aroma</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-title {
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .admin-subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .admin-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+
+        .admin-tab {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .admin-tab:hover {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+        }
+
+        .admin-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .admin-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .admin-content.hidden {
+            display: none;
+        }
+
+        .content-header {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .content-title {
+            font-size: 2em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .content-description {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .search-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-admin {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .btn-admin:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 25px;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .product-info {
+            padding: 20px;
+        }
+
+        .product-name {
+            font-weight: 600;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .product-price {
+            color: #667eea;
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn-edit {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .btn-edit:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 1em;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            padding: 12px 16px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 15px;
+            }
+            
+            .admin-header {
+                padding: 20px;
+            }
+            
+            .admin-title {
+                font-size: 2em;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .admin-tabs {
+                flex-direction: column;
+            }
+            
+            .search-bar {
+                flex-direction: column;
+            }
+            
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Admin Header -->
+        <div class="admin-header">
+            <h1 class="admin-title">👑 Admin Panel</h1>
+            <p class="admin-subtitle">Den Aroma - Mahsulotlarni boshqarish tizimi</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalProducts">-</div>
+                <div class="stat-label">Jami mahsulotlar</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="pendingProducts">-</div>
+                <div class="stat-label">Ko'rib chiqilishi kerak</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalCategories">-</div>
+                <div class="stat-label">Kategoriyalar</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="activeProducts">-</div>
+                <div class="stat-label">Faol mahsulotlar</div>
+            </div>
+        </div>
+
+        <!-- Admin Tabs -->
+        <div class="admin-tabs">
+            <div class="admin-tab active" onclick="showTab('dashboard')">
+                📊 Dashboard
+            </div>
+            <div class="admin-tab" onclick="showTab('pending')">
+                ⏳ Ko'rib chiqilishi kerak
+            </div>
+            <div class="admin-tab" onclick="showTab('products')">
+                📦 Mahsulotlar
+            </div>
+            <div class="admin-tab" onclick="showTab('add-product')">
+                ➕ Mahsulot qo'shish
+            </div>
+            <div class="admin-tab" onclick="showTab('categories')">
+                🏷️ Kategoriyalar
+            </div>
+            <div class="admin-tab" onclick="showTab('import')">
+                📥 Import
+            </div>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="admin-content">
+            <div class="content-header">
+                <h2 class="content-title">📊 Dashboard</h2>
+                <p class="content-description">Tizim holati va statistika</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="todayOrders">-</div>
+                    <div class="stat-label">Bugungi buyurtmalar</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="monthlyRevenue">-</div>
+                    <div class="stat-label">Oylik daromad</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">-</div>
+                    <div class="stat-label">Jami foydalanuvchilar</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="systemStatus">✅</div>
+                    <div class="stat-label">Tizim holati</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ko'rib chiqilishi kerak tab -->
+        <div id="pending-tab" class="admin-content hidden">
+            <div class="content-header">
+                <h2 class="content-title">⏳ Ko'rib chiqilishi kerak mahsulotlar</h2>
+                <p class="content-description">Kanal postlaridan avtomatik import qilingan mahsulotlar</p>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" id="pendingSearch" placeholder="Mahsulot qidirish...">
+                <select id="pendingCategoryFilter" class="search-input">
+                    <option value="">Barcha kategoriyalar</option>
+                </select>
+                <button class="btn-admin" onclick="searchPendingProducts()">🔍 Qidirish</button>
+            </div>
+            
+            <div class="products-grid" id="pendingProductsGrid">
+                <div class="loading">Ko'rib chiqilishi kerak mahsulotlar yuklanmoqda...</div>
+            </div>
+        </div>
+
+        <!-- Products Tab -->
+        <div id="products-tab" class="admin-content hidden">
+            <div class="content-header">
+                <h2 class="content-title">📦 Barcha mahsulotlar</h2>
+                <p class="content-description">Tizimdagi barcha mahsulotlar ro'yxati</p>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" id="productSearch" placeholder="Mahsulot qidirish...">
+                <select id="categoryFilter" class="search-input">
+                    <option value="">Barcha kategoriyalar</option>
+                </select>
+                <button class="btn-admin" onclick="searchProducts()">🔍 Qidirish</button>
+            </div>
+            
+            <div class="products-grid" id="productsGrid">
+                <div class="loading">Mahsulotlar yuklanmoqda...</div>
+            </div>
+        </div>
+
+        <!-- Add Product Tab -->
+        <div id="add-product-tab" class="admin-content hidden">
+            <div class="content-header">
+                <h2 class="content-title">➕ Yangi mahsulot qo'shish</h2>
+                <p class="content-description">Yangi mahsulot ma'lumotlarini kiriting</p>
+            </div>
+            
+            <form id="addProductForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="productName">Mahsulot nomi *</label>
+                        <input type="text" id="productName" required placeholder="Mahsulot nomini kiriting">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productPrice">Narxi (so'm) *</label>
+                        <input type="number" id="productPrice" required placeholder="Narxni kiriting">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productCategory">Kategoriya</label>
+                        <select id="productCategory">
+                            <option value="">Kategoriyani tanlang</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productStock">Zapas</label>
+                        <input type="number" id="productStock" value="1" min="0" placeholder="Zapas miqdori">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productImage">Rasm URL</label>
+                        <input type="url" id="productImage" placeholder="Rasm havolasini kiriting">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productDescription">Tavsif</label>
+                        <textarea id="productDescription" placeholder="Mahsulot haqida ma'lumot..."></textarea>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-submit">💾 Mahsulotni saqlash</button>
+            </form>
+        </div>
+
+        <!-- Categories Tab -->
+        <div id="categories-tab" class="admin-content hidden">
+            <div class="content-header">
+                <h2 class="content-title">🏷️ Kategoriyalar</h2>
+                <p class="content-description">Mahsulot kategoriyalarini boshqarish</p>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" id="categorySearch" placeholder="Kategoriya nomi...">
+                <button class="btn-admin" onclick="addCategory()">➕ Kategoriya qo'shish</button>
+            </div>
+            
+            <div class="products-grid" id="categoriesList">
+                <div class="loading">Kategoriyalar yuklanmoqda...</div>
+            </div>
+        </div>
+
+        <!-- Import Tab -->
+        <div id="import-tab" class="admin-content hidden">
+            <div class="content-header">
+                <h2 class="content-title">📥 Kanal postlarini import qilish</h2>
+                <p class="content-description">Telegram kanaliga post tashlang va u avtomatik ravishda mahsulot sifatida qo'shiladi</p>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Import holati</h3>
+                    <p>✅ Kanal post handler faol</p>
+                    <p>📱 Kanal ID: <span id="channelId">-</span></p>
+                    <p>🔄 Oxirgi import: <span id="lastImport">-</span></p>
+                </div>
+                
+                <div class="stat-card">
+                    <h3>Import qilish</h3>
+                    <p>1. Kanalga mahsulot postini tashlang</p>
+                    <p>2. Avtomatik import bo'ladi</p>
+                    <p>3. Ko'rib chiqilishi kerak bo'limida ko'rinadi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin-panel.js"></script>
+</body>
+</html>

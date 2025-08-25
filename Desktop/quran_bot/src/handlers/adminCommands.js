@@ -246,17 +246,20 @@ async function handleRestartCommand(bot, chatId) {
  */
 async function handleAdminPanelCommand(bot, chatId) {
   try {
-    const adminPanelUrl = `${config.baseUrl}/admin.html`;
+    const adminPanelUrl = `${config.baseUrl}/admin-panel.html`;
 
     const message =
-      `🛠️ <b>Admin Panel</b>\n\n` +
-      `Web App orqali mahsulotlarni boshqarish:\n\n` +
+      `👑 <b>Admin Panel</b>\n\n` +
+      `Professional admin panel orqali mahsulotlarni boshqarish:\n\n` +
       `📱 <a href="${adminPanelUrl}">Admin Panel'ni ochish</a>\n\n` +
-      `💡 <b>Imkoniyatlar:</b>\n` +
-      `• Mahsulotlarni qo'shish/tahrirlash/o'chirish\n` +
-      `• Kategoriyalarni boshqarish\n` +
-      `• Kanal postlarini import qilish\n` +
-      `• Statistikalarni ko'rish`;
+      `💡 <b>Yangi imkoniyatlar:</b>\n` +
+      `• 📊 Dashboard - tizim statistikasi\n` +
+      `• ⏳ Ko'rib chiqilishi kerak - import qilingan mahsulotlar\n` +
+      `• 📦 Mahsulotlar - barcha mahsulotlar\n` +
+      `• ➕ Mahsulot qo'shish - yangi mahsulot\n` +
+      `• 🏷️ Kategoriyalar - kategoriyalarni boshqarish\n` +
+      `• 📥 Import - avtomatik import holati\n\n` +
+      `✨ <b>Professional va qulay interfeys!</b>`;
 
     await bot.sendMessage(chatId, message, {
       parse_mode: "HTML",
