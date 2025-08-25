@@ -49,6 +49,14 @@ const productSchema = new mongoose.Schema({
       "hygiene", // gigiena
       "detergents", // yuvish vositalari
       "other", // boshqa
+      // Uzbekcha kategoriyalar
+      "Kosmetika",
+      "Ayollar atirlari 🌺",
+      "Erkaklar atirlari 👳🏻‍♂️",
+      "Hojalik anjomlari",
+      "Yangi",
+      "Atirlar",
+      "Boshqa"
     ],
     default: "other",
   },
