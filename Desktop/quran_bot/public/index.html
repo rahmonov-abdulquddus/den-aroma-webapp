@@ -18,9 +18,8 @@
         <!-- Top Status Bar -->
         <div class="status-bar">
           <div class="time">12:26</div>
-          <div class="network">LTE 35</div>
         </div>
-        
+
         <!-- Location Selector -->
         <div class="location-selector">
           <div class="location-info">
@@ -30,7 +29,7 @@
           </div>
           <div class="delivery-info">yetkazib beriladigan shahar</div>
         </div>
-        
+
         <!-- Search Bar -->
         <div class="search-container">
           <div class="search-box">
@@ -70,56 +69,56 @@
               </div>
               <span>Taom yetkazib ber...</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('sports')">
               <div class="category-icon sports">
                 <i class="fas fa-basketball-ball"></i>
               </div>
               <span>Sport va dam olish</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('discounts')">
               <div class="category-icon discounts">
                 <i class="fas fa-tags"></i>
               </div>
               <span>Arzon narxlar kafolati</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('family')">
               <div class="category-icon family">
                 <i class="fas fa-baby"></i>
               </div>
               <span>Onalar va bolalar uchun</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('market')">
               <div class="category-icon market">
                 <i class="fas fa-shopping-bag"></i>
               </div>
               <span>Zamonaviy Bozor</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('cards')">
               <div class="category-icon cards">
                 <i class="fas fa-credit-card"></i>
               </div>
               <span>Karta ochish</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('auto')">
               <div class="category-icon auto">
                 <i class="fas fa-car"></i>
               </div>
               <span>Den Aroma Avto</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('repair')">
               <div class="category-icon repair">
                 <i class="fas fa-tools"></i>
               </div>
               <span>Remont uchun ham...</span>
             </div>
-            
+
             <div class="category-item" onclick="showCategory('school')">
               <div class="category-icon school">
                 <i class="fas fa-graduation-cap"></i>
@@ -138,28 +137,37 @@
               <span>2 kun qoldi</span>
             </div>
           </div>
-          
+
           <div class="discounts-carousel">
             <div class="discount-card">
-              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol">
+              <img
+                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop"
+                alt="Aroma Oqbilol"
+              />
               <div class="discount-info">
                 <h4>Aroma Oqbilol Premium</h4>
                 <p class="discount-price">250,000 so'm</p>
                 <p class="original-price">300,000 so'm</p>
               </div>
             </div>
-            
+
             <div class="discount-card">
-              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol Classic">
+              <img
+                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop"
+                alt="Aroma Oqbilol Classic"
+              />
               <div class="discount-info">
                 <h4>Aroma Oqbilol Classic</h4>
                 <p class="discount-price">180,000 so'm</p>
                 <p class="original-price">220,000 so'm</p>
               </div>
             </div>
-            
+
             <div class="discount-card">
-              <img src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop" alt="Aroma Oqbilol Deluxe">
+              <img
+                src="https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=200&h=150&fit=crop"
+                alt="Aroma Oqbilol Deluxe"
+              />
               <div class="discount-info">
                 <h4>Aroma Oqbilol Deluxe</h4>
                 <p class="discount-price">320,000 so'm</p>
@@ -173,19 +181,19 @@
         <div class="catalog" id="catalog">
           <!-- Products will be displayed here -->
         </div>
-        
+
         <!-- Cart -->
-        <div class="cart" id="cart" style="display: none;">
+        <div class="cart" id="cart" style="display: none">
           <!-- Cart items will be displayed here -->
         </div>
 
         <!-- Profile -->
-        <div class="profile" id="profile" style="display: none;">
+        <div class="profile" id="profile" style="display: none">
           <!-- Profile content will be displayed here -->
         </div>
 
         <!-- Location Selection Modal -->
-        <div class="location-modal" id="locationModal" style="display: none;">
+        <div class="location-modal" id="locationModal" style="display: none">
           <div class="modal-content">
             <div class="modal-header">
               <h3>Manzil tanlash</h3>
@@ -193,18 +201,18 @@
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div class="location-options">
               <div class="location-option" onclick="selectLocation('current')">
                 <i class="fas fa-location-arrow"></i>
                 <span>Hozirgi joylashuv</span>
               </div>
-              
+
               <div class="location-option" onclick="selectLocation('manual')">
                 <i class="fas fa-map-marker-alt"></i>
                 <span>Qo'lda kiritish</span>
               </div>
-              
+
               <div class="location-option" onclick="selectLocation('saved')">
                 <i class="fas fa-bookmark"></i>
                 <span>Saqlangan manzillar</span>
@@ -213,7 +221,7 @@
           </div>
         </div>
       </main>
-      
+
       <!-- Bottom Navigation -->
       <nav class="navigation">
         <button class="nav-btn active" onclick="showCatalog()">
@@ -239,7 +247,7 @@
         </button>
       </nav>
     </div>
-    
+
     <script src="app.js"></script>
   </body>
 </html>

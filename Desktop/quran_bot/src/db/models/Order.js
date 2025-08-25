@@ -2,84 +2,102 @@
 
 import mongoose from "mongoose";
 
-const OrderSchema = new mongoose.Schema({
-  user: {
+const orderItemSchema = new mongoose.Schema({
+  productId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
+    ref: "Product",
     required: true,
   },
-  products: [
-    {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
-      },
-      quantity: {
-        type: Number,
-        default: 1,
-      },
-      price: {
-        type: Number,
-        required: true,
-      },
-    },
-  ],
-  contact: {
+  name: {
     type: String,
     required: true,
   },
-  address: {
-    type: String,
-    required: true,
-  },
-  totalPrice: {
+  price: {
     type: Number,
     required: true,
+  },
+  quantity: {
+    type: Number,
+    required: true,
+    min: 1,
+  },
+  total: {
+    type: Number,
+    required: true,
+  },
+});
+
+const orderSchema = new mongoose.Schema({
+  orderNumber: {
+    type: String,
+    required: true,
+  },
+  userId: {
+    type: String,
+    required: true,
+  },
+  userInfo: {
+    firstName: String,
+    lastName: String,
+    phone: String,
+    telegramUsername: String,
+  },
+  items: [orderItemSchema],
+  totalAmount: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  deliveryAddress: {
+    city: String,
+    district: String,
+    street: String,
+    house: String,
+    apartment: String,
+    landmark: String,
+  },
+  deliveryInfo: {
+    method: {
+      type: String,
+      enum: ["delivery", "pickup"],
+      default: "delivery",
+    },
+    cost: {
+      type: Number,
+      default: 0,
+    },
+    estimatedTime: String,
+  },
+  payment: {
+    method: {
+      type: String,
+      enum: ["cash", "card"],
+      default: "cash",
+    },
+    status: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+    },
   },
   status: {
     type: String,
     enum: [
-      "yangi",
-      "admin_tasdiqladi",
-      "dastavchikka_berildi",
-      "yetkazildi",
+      "pending",
+      "confirmed",
+      "preparing",
+      "delivering",
+      "delivered",
       "cancelled",
     ],
-    default: "yangi",
+    default: "pending",
   },
-  deliveryPersonId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "DeliveryPerson",
-    default: null,
+  notes: {
+    customer: String,
+    admin: String,
   },
-  paymentMethod: {
-    type: String,
-    default: "cash", // yoki 'click', 'payme', 'uzum', va h.k.
-  },
-  orderNumber: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  feedback: {
-    text: {
-      type: String,
-      default: null,
-    },
-    rating: {
-      type: Number,
-      min: 1,
-      max: 5,
-      default: null,
-    },
-    createdAt: {
-      type: Date,
-      default: null,
-    },
-  },
-  feedbackAt: {
-    type: Date,
+  assignedTo: {
+    type: String, // Delivery person ID
     default: null,
   },
   createdAt: {
@@ -90,32 +108,29 @@ const OrderSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  deliveredAt: Date,
+  cancelledAt: Date,
+  cancelReason: String,
 });
 
-// Yangilanish vaqtini avtomatik yangilash
-OrderSchema.pre("save", function (next) {
+// Indexes
+orderSchema.index({ userId: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.index({ orderNumber: 1 });
+
+// Update timestamp on save
+orderSchema.pre("save", function (next) {
   this.updatedAt = new Date();
   next();
 });
 
-// Validatsiya
-OrderSchema.pre("save", function (next) {
-  if (this.products.length === 0) {
-    return next(new Error("Buyurtmada kamida bitta mahsulot bo'lishi kerak"));
+// Generate order number
+orderSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    const count = await this.constructor.countDocuments();
+    this.orderNumber = `DA-${Date.now().toString().slice(-6)}-${count + 1}`;
   }
-
-  if (this.totalPrice <= 0) {
-    return next(new Error("Buyurtma narxi 0 dan katta bo'lishi kerak"));
-  }
-
   next();
 });
 
-// Performance uchun indexlar
-OrderSchema.index({ user: 1, createdAt: -1 }); // Foydalanuvchi buyurtmalari
-OrderSchema.index({ status: 1 }); // Status bo'yicha
-OrderSchema.index({ deliveryPersonId: 1 }); // Dastavchik bo'yicha
-OrderSchema.index({ createdAt: -1 }); // Yangi buyurtmalar
-OrderSchema.index({ orderNumber: 1 }); // Buyurtma raqami bo'yicha
-
-export default mongoose.model("Order", OrderSchema);
+export default mongoose.model("Order", orderSchema);

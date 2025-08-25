@@ -21,9 +21,9 @@ const cartService = {
    * @returns {Promise<object>} Yangilangan savat obyekti.
    * @throws {Error} Agar mahsulot topilmasa.
    */
-  addProductToCart: async (userId, productId, quantity = 1) => {
+  addToCart: async (userId, productId, quantity = 1) => {
     const product = await productService.getProduct(productId);
-    console.log("addProductToCart: product:", product);
+    console.log("addToCart: product:", product);
     if (!product) {
       throw new Error("Mahsulot topilmadi yoki mavjud emas.");
     }

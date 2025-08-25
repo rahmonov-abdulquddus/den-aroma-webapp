@@ -148,6 +148,9 @@ export default function registerProductManagementHandler(bot) {
 
       // Mahsulotni saqlash
       try {
+        // createdBy ni qo'shamiz
+        state.productData.createdBy = userId.toString();
+
         const product = await productService.addProduct(state.productData);
 
         await bot.editMessageText(

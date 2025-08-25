@@ -7,6 +7,8 @@ import userService from "../services/userService.js"; // Foydalanuvchi tilini ol
 import config from "../config/index.js"; // Admin IDni olish uchun
 import adminService from "../services/adminService.js";
 import deliveryPersonService from "../services/deliveryPersonService.js";
+import mongoose from "mongoose"; // Kategoriya IDni ObjectId ga o'tkazish uchun
+import Product from "../db/models/Product.js"; // Mahsulotlar uchun
 
 // Keyboard importlari
 import {
@@ -138,11 +140,10 @@ export const displayCategoriesForProduct = async (
   try {
     const categories = await categoryService.getAllCategories();
     if (categories.length === 0) {
-      await bot.editMessageText(
+      await bot.sendMessage(
+        telegramId,
         _getTranslation("admin_no_categories_for_product"),
         {
-          chat_id: telegramId,
-          message_id: messageIdToEdit,
           reply_markup: {
             inline_keyboard: [
               [
@@ -161,13 +162,12 @@ export const displayCategoriesForProduct = async (
     const keyboard = productCategorySelectionKeyboard(
       categories,
       userLanguage
-    ).inline_keyboard; // <<< userLanguage ni uzatamiz
+    ).inline_keyboard;
 
-    await bot.editMessageText(
+    await bot.sendMessage(
+      telegramId,
       _getTranslation("admin_select_category_for_product"),
       {
-        chat_id: telegramId,
-        message_id: messageIdToEdit,
         reply_markup: { inline_keyboard: keyboard },
         parse_mode: "HTML",
       }
@@ -308,8 +308,10 @@ export const displayAdminProducts = async (
 
       // Har bir kategoriyadagi mahsulotlar sonini ko'rsatish
       for (const cat of categories) {
+        // categoryId string emas, ObjectId bo'lishi kerak
+        const categoryId = cat._id.toString();
         const productsInCategory = await productService.getProductsByCategoryId(
-          cat._id
+          categoryId
         );
         messageText += `• ${cat.name}: <b>${productsInCategory.length} ta</b>\n`;
 
@@ -384,9 +386,16 @@ export const displayAdminProductsByCategory = async (
     let categoryName = "Barcha mahsulotlar";
 
     if (categoryId && categoryId !== "all") {
-      allProducts = await productService.getProductsByCategoryId(categoryId);
-      const category = await categoryService.getCategoryById(categoryId);
-      categoryName = category ? category.name : "Kategoriya";
+      // categoryId string bo'lsa, ObjectId ga o'tkazish
+      if (mongoose.Types.ObjectId.isValid(categoryId)) {
+        allProducts = await productService.getProductsByCategoryId(categoryId);
+        const category = await categoryService.getCategoryById(categoryId);
+        categoryName = category ? category.name : "Kategoriya";
+      } else {
+        // categoryId string bo'lsa, category string maydoni bo'yicha qidirish
+        allProducts = await Product.find({ category: categoryId });
+        categoryName = categoryId;
+      }
     } else {
       allProducts = await productService.getAllProducts();
     }
@@ -661,7 +670,9 @@ export const displayUserSelectedProduct = async (
   bot,
   telegramId,
   product,
-  messageIdToEdit = null
+  messageIdToEdit = null,
+  categoryId = null,
+  page = 0
 ) => {
   const user = await userService.getUser(telegramId);
   const userLanguage = user ? user.language : "uzbek";
@@ -686,6 +697,12 @@ export const displayUserSelectedProduct = async (
 
   messageText += `📢 <b>Kanalimizga qo'shiling:</b> @denaroma_oqbilol`;
 
+  // Orqaga qaytish callback_data'ni yaratish
+  const backCallback =
+    categoryId && page !== undefined
+      ? `back_to_user_products_list_${categoryId}_${page}`
+      : "back_to_user_products_list";
+
   const inlineKeyboard = [
     [
       {
@@ -696,7 +713,7 @@ export const displayUserSelectedProduct = async (
     [
       {
         text: "⬅️ Orqaga qaytish",
-        callback_data: "back_to_user_products_list",
+        callback_data: backCallback,
       },
     ],
     [
@@ -934,7 +951,6 @@ export const displayAdminList = async (
     } else {
       await bot.sendMessage(telegramId, messageText, {
         reply_markup: keyboard,
-        parse_mode: "HTML",
       });
     }
   } catch (error) {
@@ -1010,7 +1026,7 @@ export const displayDeliveryPersonList = async (
       endIndex
     );
 
-    let messageText = `🚚 <b>Dastavchilar ro'yxati</b>\n\n`;
+    let messageText = `🚚 <b>Dastavchilar ro'yxatini</b>\n\n`;
     messageText += `📊 <b>Jami dastavchilar:</b> ${allDeliveryPersons.length} ta\n\n`;
 
     const { deliveryPersonListPaginationKeyboard } = await import(
@@ -1111,7 +1127,6 @@ export const displayDeliveryPersonList = async (
     } else {
       await bot.sendMessage(telegramId, messageText, {
         reply_markup: keyboard,
-        parse_mode: "HTML",
       });
     }
   } catch (error) {
@@ -1154,6 +1169,7 @@ export const displayDeliveryPersonList = async (
           parse_mode: "HTML",
         }
       );
+      return;
     }
   }
 };

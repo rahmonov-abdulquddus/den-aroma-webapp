@@ -32,6 +32,7 @@ class ProductService {
       stock,
       discountPrice,
       isDiscount,
+      createdBy, // Admin ID ni qo'shamiz
     } = productData;
 
     // imageUrl null/undefined/bo'sh string bo'lsa, default rasm URL'ini ishlatish
@@ -57,10 +58,12 @@ class ProductService {
     tags = suggestTags(name, description);
 
     const newProduct = new Product({
+      category: suggestedCategory || "general", // category maydonini qo'shamiz
       categoryId: finalCategoryId,
       name,
       description,
       price,
+      image: finalImageUrl, // image maydonini qo'shamiz
       imageUrl: finalImageUrl,
       imageFileId: imageFileId || "",
       stock,
@@ -69,6 +72,7 @@ class ProductService {
       needsCategorization,
       suggestedCategory,
       tags,
+      createdBy: createdBy || "admin", // createdBy maydonini qo'shamiz
     });
     await newProduct.save();
     return newProduct;
@@ -84,11 +88,9 @@ class ProductService {
       if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         throw new Error("Invalid category ID provided.");
       }
-      return await Product.find({ categoryId: categoryId })
-        .populate("categoryId")
-        .sort({ name: 1 });
+      return await Product.find({ categoryId: categoryId }).sort({ name: 1 });
     }
-    return await Product.find().populate("categoryId").sort({ name: 1 });
+    return await Product.find().sort({ name: 1 }); // populate ni olib tashladim
   }
 
   /**
@@ -110,7 +112,7 @@ class ProductService {
     if (!mongoose.Types.ObjectId.isValid(productId)) {
       throw new Error("Invalid product ID provided.");
     }
-    return await Product.findById(productId).populate("categoryId");
+    return await Product.findById(productId); // populate ni olib tashladim
   }
 
   /**
@@ -124,7 +126,7 @@ class ProductService {
       // AI API chaqiruvi (misol uchun OpenAI, sizning API kalitingiz kerak)
       const openaiApiKey = process.env.OPENAI_API_KEY;
       if (openaiApiKey) {
-        const allProducts = await Product.find().populate("categoryId");
+        const allProducts = await Product.find(); // populate ni olib tashladim
         const productList = allProducts.map(
           (p) => `${p.name} - ${p.description || ""}`
         );
@@ -171,10 +173,10 @@ class ProductService {
       // AI ishlamasa, oddiy qidiruvga o‘tamiz
     }
     // 2. Fallback: oddiy Fuse.js qidiruv
-    const allProducts = await Product.find().populate("categoryId");
+    const allProducts = await Product.find(); // populate ni olib tashladim
     const options = {
       keys: ["name", "description"],
-      threshold: 0.4, // 0 - faqat to‘liq mos, 1 - juda yumshoq
+      threshold: 0.4, // 0 - faqat to'liq mos, 1 - juda yumshoq
     };
     const fuse = new Fuse(allProducts, options);
     const result = fuse.search(query);
@@ -458,21 +460,35 @@ class ProductService {
       stock,
       suggestedCategory,
       tags,
+      source,
+      needsReview,
+      importData,
     } = productData;
 
+    // Kategoriyani aniqlash
+    let category = "other";
+    if (suggestedCategory && suggestedCategory !== "other") {
+      category = suggestedCategory;
+    }
+
     const newProduct = new Product({
-      categoryId: null, // Avval kategoriyasiz
+      categoryId: categoryId || null,
+      category: category,
       name,
       description,
       price,
+      image: imageUrl || "https://via.placeholder.com/300x200?text=No+Image",
       imageUrl: imageUrl || "https://via.placeholder.com/300x200?text=No+Image",
       imageFileId: imageFileId || "",
       stock: stock || 1,
-      isPendingReview: true, // Ko'rib chiqish uchun
-      isActive: false, // Ko'rib chiqilguncha faol emas
-      needsCategorization: true,
+      isActive: true, // Avtomatik faol qilamiz
+      needsCategorization: !categoryId,
       suggestedCategory: suggestedCategory || "",
       tags: tags || [],
+      source: source || "channel_post",
+      needsReview: needsReview || false,
+      importData: importData || {},
+      createdBy: "admin",
     });
 
     await newProduct.save();

@@ -302,6 +302,12 @@ const handleMessage = async (bot, msg) => {
     return;
   }
 
+  // Admin: Post tashlash
+  if (currentState === "waiting_post_content") {
+    await handleAdminPostTashlash(bot, msg, telegramId, text, userLanguage);
+    return;
+  }
+
   // Mahsulot tahrirlash
   if (currentState === "admin_edit_product") {
     await handleAdminEditProduct(bot, msg, telegramId, text, userLanguage);
@@ -3723,6 +3729,84 @@ async function handleDeliveryMarkAsDelivered(bot, orderId, deliveryPersonId) {
     "Buyurtma muvaffaqiyatli yetkazildi va admin xabardor qilindi."
   );
 }
+
+// --- YANGI: Admin post tashlash funksiyasi ---
+const handleAdminPostTashlash = async (
+  bot,
+  msg,
+  telegramId,
+  postText,
+  userLanguage
+) => {
+  const _getTranslation = (key, replacements) =>
+    getTranslation(key, replacements, userLanguage);
+
+  if (!postText || postText.trim() === "") {
+    await bot.sendMessage(
+      msg.chat.id,
+      "❌ Post matni bo'sh bo'lishi mumkin emas!"
+    );
+    return;
+  }
+
+  try {
+    // Kanal ID ni config dan olish
+    const channelId = config.channelId || "@denaroma_oqbilol";
+
+    // Postni kanalga yuborish
+    await bot.sendMessage(channelId, postText, {
+      parse_mode: "HTML",
+    });
+
+    // Admin ga muvaffaqiyat xabari
+    await bot.sendMessage(
+      msg.chat.id,
+      `✅ <b>Post muvaffaqiyatli tashlandi!</b>\n\n` +
+        `📝 <b>Post matni:</b>\n${postText.substring(0, 100)}${
+          postText.length > 100 ? "..." : ""
+        }\n\n` +
+        `📢 <b>Kanal:</b> ${channelId}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🔙 Admin paneliga qaytish",
+                callback_data: "back_to_admin_main",
+              },
+            ],
+          ],
+        },
+      }
+    );
+
+    // Foydalanuvchi holatini tozalash
+    global.userStates = global.userStates || {};
+    if (global.userStates[telegramId]) {
+      delete global.userStates[telegramId];
+    }
+  } catch (error) {
+    console.error("Post tashlashda xato: ", error);
+    await bot.sendMessage(
+      msg.chat.id,
+      `❌ <b>Post tashlashda xato yuz berdi!</b>\n\n${error.message}`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🔙 Admin paneliga qaytish",
+                callback_data: "back_to_admin_main",
+              },
+            ],
+          ],
+        },
+      }
+    );
+  }
+};
 
 export { defineDeliveryPersonPanel };
 export default handleMessage;

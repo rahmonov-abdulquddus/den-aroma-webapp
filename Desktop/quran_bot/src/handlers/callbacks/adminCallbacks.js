@@ -65,7 +65,7 @@ export const handleAdminCallbacks = async (
 
   // Kategoriyalarni boshqarish
   if (data === "manage_categories") {
-    await displayAdminCategories(bot, chatId);
+    await displayAdminCategories(bot, telegramId);
     return true;
   }
 
@@ -109,6 +109,42 @@ export const handleAdminCallbacks = async (
         },
       }
     );
+    return true;
+  }
+
+  // Post tashlash
+  if (data === "send_post") {
+    await safeEditMessage(
+      `📝 <b>Post tashlash</b>\n\n` +
+        `Kanalga yuboriladigan postni yuboring:\n\n` +
+        `📋 <b>Post turlari:</b>\n` +
+        `• Mahsulot haqida\n` +
+        `• Yangiliklar\n` +
+        `• Chegirmalar\n` +
+        `• Boshqa ma'lumotlar\n\n` +
+        `Postni yuboring yoki "🔙 Orqaga" tugmasini bosing:`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🔙 Admin paneliga qaytish",
+                callback_data: "back_to_admin_main",
+              },
+            ],
+          ],
+        },
+      }
+    );
+
+    // Foydalanuvchi holatini o'rnatish
+    global.userStates = global.userStates || {};
+    global.userStates[telegramId] = {
+      step: "waiting_post_content",
+      postData: {},
+    };
+
     return true;
   }
 
@@ -199,28 +235,35 @@ export const handleAdminCallbacks = async (
 
   // Yangi mahsulot qo'shish
   if (data === "add_product") {
-    await safeEditMessage(
-      `➕ <b>Yangi mahsulot qo'shish</b>\n\n` + `Mahsulot nomini yuboring:`,
-      {
-        parse_mode: "HTML",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "🔙 Mahsulotlarni boshqarishga qaytish",
-                callback_data: "manage_products",
-              },
-            ],
-          ],
-        },
-      }
-    );
+    await displayCategoriesForProduct(bot, telegramId, "admin_view");
     return true;
   }
 
   // Mahsulotlarni ko'rish
   if (data === "view_products") {
-    await displayAdminProducts(bot, chatId);
+    await displayAdminProducts(bot, telegramId);
+    return true;
+  }
+
+  // Kategoriya bo'yicha mahsulotlarni ko'rish
+  if (data.startsWith("admin_view_products_in_category_")) {
+    const categoryId = data.replace("admin_view_products_in_category_", "");
+    await displayAdminProductsByCategory(bot, telegramId, categoryId);
+    return true;
+  }
+
+  // Mahsulotlar sahifasi
+  if (data.startsWith("admin_products_page_")) {
+    const parts = data.replace("admin_products_page_", "").split("_");
+    const page = parseInt(parts[0]);
+    const categoryId = parts[1] || "all";
+    await displayAdminProductsByCategory(
+      bot,
+      telegramId,
+      categoryId,
+      null,
+      page
+    );
     return true;
   }
 
@@ -381,8 +424,14 @@ export const handleAdminCallbacks = async (
   // ===== FOYDALANUVCHILARNI BOSHQARISH =====
 
   // Foydalanuvchilarni ko'rish
-  if (data === "manage_users") {
-    await displayAdminList(bot, chatId, "users");
+  if (data === "view_users") {
+    await displayAdminList(bot, telegramId, "users");
+    return true;
+  }
+
+  // Dastavchilarni ko'rish
+  if (data === "view_delivery_persons") {
+    await displayDeliveryPersonList(bot, telegramId);
     return true;
   }
 

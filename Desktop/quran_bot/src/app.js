@@ -2,6 +2,8 @@
 
 import TelegramBot from "node-telegram-bot-api";
 import mongoose from "mongoose";
+import express from "express";
+import cors from "cors";
 import config from "./config.js";
 
 // Handler funksiyalarini to'g'ri import qilish
@@ -9,6 +11,10 @@ import handleMessage from "./handlers/messageHandler.js";
 import handleCallbackQuery from "./handlers/callbackQueryHandler.js";
 import { setupCommands } from "./handlers/commandHandler.js"; // setupCommands ni import qilamiz
 import userService from "./services/userService.js"; // Foydalanuvchi tilini olish uchun
+import productService from "./services/productService.js"; // Mahsulotlar uchun
+import categoryService from "./services/categoryService.js"; // Kategoriyalar uchun
+import orderService from "./services/orderService.js"; // Buyurtmalar uchun
+import cartService from "./services/cartService.js"; // Savatcha uchun
 import { getTranslation } from "./utils/i18n.js"; // Tilni boshqarish utiliti
 import registerChannelPostHandler from "./handlers/channelPostHandler.js";
 import registerProductManagementHandler from "./handlers/productManagementHandler.js";
@@ -21,8 +27,125 @@ import { isSpam, logSecurityEvent } from "./utils/security.js"; // Xavfsizlik uc
 import monitoring from "./utils/monitoring.js"; // Monitoring uchun
 import backup from "./utils/backup.js"; // Backup uchun
 
+// Express server yaratish
+const app = express();
+const PORT = process.env.PORT || 3002;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
+
 // Telegram bot instansiyasini yaratish
 const bot = new TelegramBot(config.telegramBotToken, { polling: true });
+
+// API Routes
+app.get("/api/health", (req, res) => {
+  res.json({ status: "OK", timestamp: new Date().toISOString() });
+});
+
+// Mahsulotlar API
+app.get("/api/products", async (req, res) => {
+  try {
+    const products = await productService.getAllProducts();
+    res.json(products);
+  } catch (error) {
+    res.status(500).json({ error: "Mahsulotlarni olishda xatolik" });
+  }
+});
+
+app.get("/api/products/:id", async (req, res) => {
+  try {
+    const product = await productService.getProductById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ error: "Mahsulot topilmadi" });
+    }
+    res.json(product);
+  } catch (error) {
+    res.status(500).json({ error: "Mahsulotni olishda xatolik" });
+  }
+});
+
+// Kategoriyalar API
+app.get("/api/categories", async (req, res) => {
+  try {
+    const categories = await categoryService.getAllCategories();
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ error: "Kategoriyalarni olishda xatolik" });
+  }
+});
+
+// Buyurtmalar API
+app.post("/api/orders", async (req, res) => {
+  try {
+    const orderData = req.body;
+    const order = await orderService.createOrder(orderData);
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: "Buyurtma yaratishda xatolik" });
+  }
+});
+
+app.get("/api/orders/:id", async (req, res) => {
+  try {
+    const order = await orderService.getOrderById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ error: "Buyurtma topilmadi" });
+    }
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ error: "Buyurtmani olishda xatolik" });
+  }
+});
+
+// Foydalanuvchilar API
+app.post("/api/users", async (req, res) => {
+  try {
+    const userData = req.body;
+    const user = await userService.createUser(userData);
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Foydalanuvchi yaratishda xatolik" });
+  }
+});
+
+app.get("/api/users/:telegramId", async (req, res) => {
+  try {
+    const user = await userService.getUserByTelegramId(req.params.telegramId);
+    if (!user) {
+      return res.status(404).json({ error: "Foydalanuvchi topilmadi" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: "Foydalanuvchini olishda xatolik" });
+  }
+});
+
+// Savatcha API
+app.post("/api/cart/add", async (req, res) => {
+  try {
+    const { userId, productId, quantity } = req.body;
+    const cart = await cartService.addToCart(userId, productId, quantity);
+    res.json(cart);
+  } catch (error) {
+    res.status(500).json({ error: "Savatchaga qo'shishda xatolik" });
+  }
+});
+
+app.get("/api/cart/:userId", async (req, res) => {
+  try {
+    const cart = await cartService.getUserCart(req.params.userId);
+    res.json(cart);
+  } catch (error) {
+    res.status(500).json({ error: "Savatchani olishda xatolik" });
+  }
+});
+
+// Express server ni ishga tushirish
+app.listen(PORT, () => {
+  console.log(`Express server ${PORT} portda ishga tushdi`);
+});
 
 // Asosiy ishga tushirish funksiyasi
 const startBot = async () => {

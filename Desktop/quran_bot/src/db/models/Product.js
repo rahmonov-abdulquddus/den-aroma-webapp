@@ -1,104 +1,130 @@
 // src/db/models/Product.js
 import mongoose from "mongoose";
 
-const ProductSchema = new mongoose.Schema({
+const productSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
     trim: true,
   },
-  description: {
-    type: String,
-    default: "",
-  },
   price: {
     type: Number,
     required: true,
+    min: 0,
   },
-  imageUrl: {
-    type: String,
-    default: "",
+  originalPrice: {
+    type: Number,
+    min: 0,
   },
-  imageFileId: {
+  description: {
     type: String,
-    default: "",
+    required: true,
+    trim: true,
+  },
+  image: {
+    type: String,
+    required: false, // ixtiyoriy qilamiz
+    default: "https://via.placeholder.com/300x200?text=No+Image",
+  },
+  category: {
+    type: String,
+    required: false, // ixtiyoriy qilamiz
+    enum: [
+      "premium",
+      "classic",
+      "deluxe",
+      "organic",
+      "limited",
+      "food",
+      "sports",
+      "discounts",
+      "family",
+      "market",
+      "cards",
+      "auto",
+      "repair",
+      "school",
+      "household", // xo'jalik buyumlari
+      "cosmetics", // kosmetika
+      "hygiene", // gigiena
+      "detergents", // yuvish vositalari
+      "other", // boshqa
+    ],
+    default: "other",
   },
   categoryId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
-    required: false, // Kategoriyasiz mahsulotlar uchun null bo'lishi mumkin
+    required: false,
   },
-  stock: {
+  rating: {
     type: Number,
-    default: 1,
+    default: 5,
+    min: 1,
+    max: 5,
   },
-  brand: {
-    type: String,
-    default: "",
+  reviews: {
+    type: Number,
+    default: 0,
+    min: 0,
   },
-  size: {
+  inStock: {
+    type: Boolean,
+    default: true,
+  },
+  discount: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100,
+  },
+  tags: [
+    {
+      type: String,
+      trim: true,
+    },
+  ],
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  createdBy: {
     type: String,
-    default: "",
+    required: false, // ixtiyoriy qilamiz
+    default: "admin",
   },
   isActive: {
     type: Boolean,
     default: true,
   },
-  discountPrice: {
+  views: {
     type: Number,
-    default: null,
+    default: 0,
   },
-  isDiscount: {
+  sales: {
+    type: Number,
+    default: 0,
+  },
+  // Yangi maydonlar
+  source: {
+    type: String,
+    enum: ["manual", "channel_post", "import"],
+    default: "manual",
+  },
+  needsReview: {
     type: Boolean,
     default: false,
   },
-  needsCategorization: {
-    type: Boolean,
-    default: false, // Kategoriyasiz mahsulotlar uchun true
-  },
-  isPendingReview: {
-    type: Boolean,
-    default: false, // Admin ko'rib chiqishi kerak
-  },
-  isApproved: {
-    type: Boolean,
-    default: false, // Admin tasdiqlagan
-  },
-  isRejected: {
-    type: Boolean,
-    default: false, // Admin rad etgan
-  },
-  rejectionReason: {
-    type: String,
-    default: "", // Rad etish sababi
-  },
-  reviewedBy: {
-    type: String, // Admin Telegram ID
-    default: "",
-  },
-  reviewedAt: {
-    type: Date,
-    default: null,
-  },
-  suggestedCategory: {
-    type: String,
-    default: "", // AI tomonidan taklif qilingan kategoriya
-  },
-  tags: {
-    type: [String],
-    default: [], // AI tomonidan taklif qilingan xeshteglar
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now,
+  importData: {
+    messageId: String,
+    channelId: String,
+    originalCaption: String,
   },
 });
 
-// Performance uchun indexlar
-ProductSchema.index({ name: 'text', description: 'text' }); // Qidiruv uchun
-ProductSchema.index({ categoryId: 1 }); // Kategoriya bo'yicha
-ProductSchema.index({ isActive: 1, isApproved: 1 }); // Faol mahsulotlar uchun
-ProductSchema.index({ createdAt: -1 }); // Yangi mahsulotlar uchun
-ProductSchema.index({ needsCategorization: 1 }); // Kategoriyalash kerak bo'lganlar uchun
+// Indexes for better performance
+productSchema.index({ category: 1, isActive: 1 });
+productSchema.index({ name: "text", description: "text", tags: "text" });
+productSchema.index({ createdAt: -1 });
 
-export default mongoose.model("Product", ProductSchema);
+export default mongoose.model("Product", productSchema);

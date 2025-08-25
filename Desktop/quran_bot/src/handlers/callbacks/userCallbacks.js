@@ -4,6 +4,7 @@ import { getTranslation } from "../../utils/i18n.js";
 import categoryService from "../../services/categoryService.js";
 import productService from "../../services/productService.js";
 import userService from "../../services/userService.js";
+import botStateInstance from "../../utils/state.js";
 import { mainMenuKeyboard } from "../../keyboards/mainMenu.js";
 import {
   displayUserCategories,
@@ -44,14 +45,53 @@ export const handleUserCallbacks = async (
   // Mahsulotni tanlash
   if (data.startsWith("select_product_")) {
     const productId = data.split("select_product_")[1];
-    await displayUserSelectedProduct(bot, chatId, productId);
+    try {
+      const product = await productService.getProduct(productId);
+      if (product) {
+        // Foydalanuvchi holatidan categoryId va page ni olish
+        const userState = botStateInstance;
+        const currentState = userState.getState(telegramId);
+        let categoryId = null;
+        let page = 0;
+
+        // Agar mahsulotlar ro'yxatidan kelgan bo'lsa, categoryId va page ni olish
+        if (currentState && currentState.includes("products")) {
+          // Bu yerda categoryId va page ni olish kerak
+          // Hozircha default qiymatlar bilan
+        }
+
+        await displayUserSelectedProduct(
+          bot,
+          telegramId,
+          product,
+          null,
+          categoryId,
+          page
+        );
+      } else {
+        await bot.sendMessage(chatId, "❌ Mahsulot topilmadi!");
+      }
+    } catch (error) {
+      console.error("Mahsulotni olishda xato:", error);
+      await bot.sendMessage(chatId, "❌ Mahsulotni olishda xato yuz berdi!");
+    }
     return true;
   }
 
   // Mahsulotni ko'rish
   if (data.startsWith("view_product_")) {
     const productId = data.split("view_product_")[1];
-    await displayUserSelectedProduct(bot, chatId, productId);
+    try {
+      const product = await productService.getProduct(productId);
+      if (product) {
+        await displayUserSelectedProduct(bot, telegramId, product);
+      } else {
+        await bot.sendMessage(chatId, "❌ Mahsulot topilmadi!");
+      }
+    } catch (error) {
+      console.error("Mahsulotni olishda xato:", error);
+      await bot.sendMessage(chatId, "❌ Mahsulotni olishda xato yuz berdi!");
+    }
     return true;
   }
 
@@ -61,6 +101,13 @@ export const handleUserCallbacks = async (
       .split("back_to_user_products_list_")[1]
       .split("_");
     await displayUserProducts(bot, chatId, categoryId, parseInt(page));
+    return true;
+  }
+
+  // Mahsulotlar ro'yxatiga qaytish (categoryId va page siz)
+  if (data === "back_to_user_products_list") {
+    // Default kategoriya va sahifa bilan qaytish
+    await displayUserProducts(bot, chatId, null, 0);
     return true;
   }
 
@@ -91,4 +138,3 @@ export const handleUserCallbacks = async (
 
   return false; // Bu callback bu faylda boshqarilmagan
 };
-

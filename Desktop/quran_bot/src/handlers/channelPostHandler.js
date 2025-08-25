@@ -14,6 +14,7 @@ export default function registerChannelPostHandler(bot) {
     try {
       // Kanal ID ni terminalga chiqarish
       console.log("Kanal postidan xabar keldi! Kanal ID:", msg.chat.id);
+
       // Faqat kerakli kanal uchun ishlasin
       const allowedChannelId = parseInt(
         process.env.IMPORT_CHANNEL_ID || config.IMPORT_CHANNEL_ID
@@ -24,11 +25,22 @@ export default function registerChannelPostHandler(bot) {
         "✅ Guruhdan yangi post keldi - avtomatik qayta ishlanmoqda..."
       );
 
-      if (!msg.photo || !msg.caption) return;
+      // Rasm va caption mavjudligini tekshirish
+      if (!msg.photo || !msg.caption) {
+        console.log("❌ Rasm yoki caption yo'q!");
+        return;
+      }
 
       // Rasm URLini olish
       const fileId = msg.photo[msg.photo.length - 1].file_id;
-      const imageUrl = await bot.getFileLink(fileId);
+      let imageUrl;
+      try {
+        const file = await bot.getFile(fileId);
+        imageUrl = `https://api.telegram.org/file/bot${config.telegramBotToken}/${file.file_path}`;
+      } catch (error) {
+        console.error("Rasm URL olishda xatolik:", error);
+        imageUrl = "https://via.placeholder.com/300x200?text=No+Image";
+      }
 
       // Matnni satrlarga ajratamiz
       const lines = msg.caption
@@ -38,9 +50,13 @@ export default function registerChannelPostHandler(bot) {
 
       // 1. Nomi: birinchi satr
       const name = lines[0];
+      if (!name || name.length < 3) {
+        console.log("❌ Mahsulot nomi juda qisqa yoki yo'q!");
+        return;
+      }
 
       // 2. Narx: "Narxi:" so'zini qidiramiz
-      const priceLine = lines.find((line) => /narxi/i.test(line));
+      const priceLine = lines.find((line) => /narxi|narx|price/i.test(line));
       let price = null;
       if (priceLine) {
         const priceMatch = priceLine.match(/([\d\s']+)[^\d]*$/);
@@ -48,62 +64,78 @@ export default function registerChannelPostHandler(bot) {
       }
 
       // 3. Tavsif: narxdan oldingi barcha satrlar (ikkinchi satrdan narxgacha)
-      const priceIndex = lines.findIndex((line) => /narxi/i.test(line));
+      const priceIndex = lines.findIndex((line) =>
+        /narxi|narx|price/i.test(line)
+      );
       const description =
         priceIndex > 1 ? lines.slice(1, priceIndex).join(" ") : "";
 
-      // 4. Kategoriya: "Kategoriya:" so'zini qidiramiz (ixtiyoriy)
-      let categoryName = null;
-      const categoryLine = lines.find((line) => /kategoriya/i.test(line));
+      // 4. Kategoriya: AI yordamida aniqlash
+      let categoryName = "other";
+      const categoryLine = lines.find((line) =>
+        /kategoriya|category/i.test(line)
+      );
       if (categoryLine) {
         const catMatch = categoryLine.match(/kategoriya\s*:?\s*(.+)/i);
-        categoryName = catMatch ? catMatch[1].trim() : null;
+        categoryName = catMatch ? catMatch[1].trim() : "other";
       }
 
-      if (!name || !price) {
-        console.log("Postdan nom yoki narx topilmadi!");
-        return;
+      // Narx topilmagan bo'lsa, default qiymat
+      if (!price || price <= 0) {
+        price = 10000; // Default narx
+        console.log("⚠️ Narx topilmadi, default narx ishlatildi: 10,000 so'm");
       }
 
-      // Rasm caption yoki fayl nomidan AI tag/kategoriya
-      const imageMeta = suggestFromImageMeta(msg.caption, fileId);
-      // Mahsulot nomi bo‘yicha dublikatni tekshirish
+      // Mahsulot nomi bo'yicha dublikatni tekshirish
       const existing = await productService.getProductByName(name);
       if (existing) {
-        console.log(`Dublikat mahsulot: ${name} (import qilinmadi)`);
+        console.log(`❌ Dublikat mahsulot: ${name} (import qilinmadi)`);
         return;
       }
+
+      // AI yordamida kategoriya va tag'larni aniqlash
+      const imageMeta = suggestFromImageMeta(msg.caption, fileId);
+
       // Kategoriya ID ni aniqlash yoki yaratish
       let categoryId = null;
-      if (categoryName) {
-        let category = await categoryService.getCategoryByName(categoryName);
-        if (!category) {
-          category = await categoryService.addCategory(categoryName);
+      if (categoryName && categoryName !== "other") {
+        try {
+          let category = await categoryService.getCategoryByName(categoryName);
+          if (!category) {
+            category = await categoryService.addCategory(categoryName);
+          }
+          categoryId = category._id;
+        } catch (error) {
+          console.error("Kategoriya yaratishda xatolik:", error);
         }
-        categoryId = category._id;
       }
-      // Kategoriya yo'q bo'lsa, kategoriyasiz mahsulot sifatida qo'shiladi
 
-      // Mahsulotni ko'rib chiqish uchun bazaga qo'shish
-      await productService.addProductFromChannel({
-        categoryId, // null bo'lishi mumkin
+      // Mahsulotni bazaga qo'shish
+      const newProduct = await productService.addProductFromChannel({
+        categoryId,
         name,
-        description,
+        description: description || "Mahsulot tavsifi kiritilmagan",
         price,
         imageUrl,
-        imageFileId: fileId, // file_id ni ham saqlaymiz
+        imageFileId: fileId,
         stock: 1,
-        // AI rasm meta
-        suggestedCategory: imageMeta.category,
-        tags: imageMeta.tags,
+        suggestedCategory: imageMeta.category || categoryName,
+        tags: imageMeta.tags || [],
+        source: "channel_post",
+        needsReview: true,
+        importData: {
+          messageId: msg.message_id.toString(),
+          channelId: msg.chat.id.toString(),
+          originalCaption: msg.caption,
+        },
       });
 
-      console.log(
-        "Kanal postidan mahsulot ko'rib chiqish uchun qo'shildi:",
-        name
-      );
-    } catch (err) {
-      console.error("Kanal postidan mahsulot qo'shishda xato:", err);
+      console.log(`✅ Mahsulot muvaffaqiyatli import qilindi: ${name}`);
+      console.log(`📊 Mahsulot ID: ${newProduct._id}`);
+      console.log(`🏷️ Kategoriya: ${newProduct.category}`);
+      console.log(`💰 Narx: ${newProduct.price} so'm`);
+    } catch (error) {
+      console.error("❌ Channel post qayta ishlashda xatolik:", error);
     }
   });
 }
