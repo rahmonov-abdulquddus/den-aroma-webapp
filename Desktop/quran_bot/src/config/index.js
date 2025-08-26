@@ -7,7 +7,8 @@ const config = {
   defaultLanguage: "uzbek",
   botUsername: "den_aroma_bot",
   webAppUrl: "https://den-aroma-webapp-1.vercel.app", // Vercel URL
-  baseUrl: "http://localhost:3002", // Boshqa port ishlatamiz
+  baseUrl: "http://localhost:3002", // Local development uchun
+  adminPanelUrl: "https://den-aroma-webapp-1.vercel.app/admin-panel.html", // Admin panel URL
 };
 
 export default config;

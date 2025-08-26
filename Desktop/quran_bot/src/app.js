@@ -47,9 +47,32 @@ app.get("/api/health", (req, res) => {
 // Mahsulotlar API
 app.get("/api/products", async (req, res) => {
   try {
-    const products = await productService.getAllProducts();
+    const { needsReview, categoryId, isActive } = req.query;
+
+    let products;
+
+    // Ko'rib chiqish kerak bo'lgan mahsulotlar
+    if (needsReview === "true") {
+      products = await productService.getProductsByStatus({
+        needsReview: true,
+      });
+    }
+    // Faqat faol mahsulotlar
+    else if (isActive === "true") {
+      products = await productService.getProductsByStatus({ isActive: true });
+    }
+    // Kategoriya bo'yicha filtrlash
+    else if (categoryId) {
+      products = await productService.getProductsByCategoryId(categoryId);
+    }
+    // Barcha mahsulotlar
+    else {
+      products = await productService.getAllProducts();
+    }
+
     res.json(products);
   } catch (error) {
+    console.error("Mahsulotlarni olishda xatolik:", error);
     res.status(500).json({ error: "Mahsulotlarni olishda xatolik" });
   }
 });
@@ -66,6 +89,43 @@ app.get("/api/products/:id", async (req, res) => {
   }
 });
 
+// Mahsulot qo'shish API
+app.post("/api/products", async (req, res) => {
+  try {
+    const productData = req.body;
+    const product = await productService.addProduct(productData);
+    res.status(201).json(product);
+  } catch (error) {
+    console.error("Mahsulot qo'shishda xatolik:", error);
+    res.status(500).json({ error: "Mahsulot qo'shishda xatolik" });
+  }
+});
+
+// Mahsulot tahrirlash API
+app.put("/api/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const product = await productService.updateProduct(id, updateData);
+    res.json(product);
+  } catch (error) {
+    console.error("Mahsulot tahrirlashda xatolik:", error);
+    res.status(500).json({ error: "Mahsulot tahrirlashda xatolik" });
+  }
+});
+
+// Mahsulot o'chirish API
+app.delete("/api/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await productService.deleteProduct(id);
+    res.json({ message: "Mahsulot muvaffaqiyatli o'chirildi" });
+  } catch (error) {
+    console.error("Mahsulot o'chirishda xatolik:", error);
+    res.status(500).json({ error: "Mahsulot o'chirishda xatolik" });
+  }
+});
+
 // Kategoriyalar API
 app.get("/api/categories", async (req, res) => {
   try {
@@ -73,6 +133,43 @@ app.get("/api/categories", async (req, res) => {
     res.json(categories);
   } catch (error) {
     res.status(500).json({ error: "Kategoriyalarni olishda xatolik" });
+  }
+});
+
+// Kategoriya qo'shish API
+app.post("/api/categories", async (req, res) => {
+  try {
+    const categoryData = req.body;
+    const category = await categoryService.addCategory(categoryData);
+    res.status(201).json(category);
+  } catch (error) {
+    console.error("Kategoriya qo'shishda xatolik:", error);
+    res.status(500).json({ error: "Kategoriya qo'shishda xatolik" });
+  }
+});
+
+// Kategoriya tahrirlash API
+app.put("/api/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+    const category = await categoryService.updateCategory(id, updateData);
+    res.json(category);
+  } catch (error) {
+    console.error("Kategoriya tahrirlashda xatolik:", error);
+    res.status(500).json({ error: "Kategoriya tahrirlashda xatolik" });
+  }
+});
+
+// Kategoriya o'chirish API
+app.delete("/api/categories/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    await categoryService.deleteCategory(id);
+    res.json({ message: "Kategoriya muvaffaqiyatli o'chirildi" });
+  } catch (error) {
+    console.error("Kategoriya o'chirishda xatolik:", error);
+    res.status(500).json({ error: "Kategoriya o'chirishda xatolik" });
   }
 });
 

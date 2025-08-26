@@ -94,6 +94,20 @@ class ProductService {
   }
 
   /**
+   * Berilgan holat bo'yicha mahsulotlarni qaytaradi.
+   * @param {Object} status - Mahsulot holati (masalan: { needsReview: true })
+   * @returns {Promise<Array>}
+   */
+  async getProductsByStatus(status) {
+    try {
+      return await Product.find(status).sort({ createdAt: -1 });
+    } catch (error) {
+      console.error("getProductsByStatus xatosi:", error);
+      throw error;
+    }
+  }
+
+  /**
    * Berilgan kategoriya ID bo'yicha mahsulotlarni qaytaradi.
    * @param {string} categoryId
    * @returns {Promise<Array>}

@@ -112,6 +112,116 @@ export const handleAdminCallbacks = async (
     return true;
   }
 
+  // ===== KO'RIB CHIQISH KERAK =====
+
+  // Ko'rib chiqish kerak bo'lgan mahsulotlarni ko'rsatish
+  if (data === "review_pending_products") {
+    try {
+      // Ko'rib chiqish kerak bo'lgan mahsulotlarni olish
+      const pendingProducts = await productService.getProductsByStatus({
+        needsReview: true,
+      });
+
+      if (!pendingProducts || pendingProducts.length === 0) {
+        await safeEditMessage(
+          `✅ <b>Ko'rib chiqish kerak bo'lgan mahsulotlar yo'q!</b>\n\n` +
+            `Barcha mahsulotlar allaqachon ko'rib chiqilgan yoki hali hech qanday mahsulot import qilinmagan.`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "📝 Post tashlash",
+                    callback_data: "send_post",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      // Mahsulotlarni ko'rsatish
+      let messageText = `⏳ <b>Ko'rib chiqish kerak bo'lgan mahsulotlar:</b>\n\n`;
+      const inlineKeyboard = [];
+
+      pendingProducts.forEach((product, index) => {
+        const productNumber = index + 1;
+        messageText += `<b>${productNumber}. ${product.name}</b>\n`;
+        messageText += `💰 Narxi: ${product.price} so'm\n`;
+        messageText += `📝 Tavsif: ${product.description || "Tavsif yo'q"}\n`;
+        messageText += `🏷️ Kategoriya: ${
+          product.category || "Kategoriyasiz"
+        }\n`;
+        messageText += `📅 Yaratilgan: ${new Date(
+          product.createdAt
+        ).toLocaleDateString("uz-UZ")}\n\n`;
+
+        // Har bir mahsulot uchun tugmalar
+        inlineKeyboard.push([
+          {
+            text: `✅ ${productNumber}. Tasdiqlash`,
+            callback_data: `approve_product_${product._id}`,
+          },
+          {
+            text: `❌ ${productNumber}. Rad etish`,
+            callback_data: `reject_product_${product._id}`,
+          },
+        ]);
+      });
+
+      // Orqaga qaytish tugmasi
+      inlineKeyboard.push([
+        {
+          text: "🔙 Admin paneliga qaytish",
+          callback_data: "back_to_admin_main",
+        },
+      ]);
+
+      await safeEditMessage(messageText, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: inlineKeyboard },
+      });
+    } catch (error) {
+      console.error(
+        "Ko'rib chiqish kerak bo'lgan mahsulotlarni olishda xato:",
+        error
+      );
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Ko'rib chiqish kerak bo'lgan mahsulotlarni olishda xato yuz berdi: ${error.message}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: "review_pending_products",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
   // Post tashlash
   if (data === "send_post") {
     await safeEditMessage(
@@ -675,6 +785,843 @@ export const handleAdminCallbacks = async (
                 {
                   text: "🔙 Hisobotlarga qaytish",
                   callback_data: "generate_reports",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== MAHSULOT TASDIQLASH VA RAD ETISH =====
+
+  // Mahsulotni tasdiqlash
+  if (data.startsWith("approve_product_")) {
+    const productId = data.replace("approve_product_", "");
+
+    try {
+      // Mahsulotni tasdiqlash
+      await productService.updateProduct(productId, {
+        needsReview: false,
+        isActive: true,
+        approvedBy: telegramId,
+        approvedAt: new Date(),
+      });
+
+      await safeEditMessage(
+        `✅ <b>Mahsulot muvaffaqiyatli tasdiqlandi!</b>\n\n` +
+          `Mahsulot ID: <code>${productId}</code>\n\n` +
+          `Mahsulot endi faol va mijozlar ko'ra oladi.`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "⏳ Ko'rib chiqish kerak",
+                  callback_data: "review_pending_products",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Mahsulotni tasdiqlashda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Mahsulotni tasdiqlashda xato yuz berdi: ${error.message}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `approve_product_${productId}`,
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // Mahsulotni rad etish
+  if (data.startsWith("reject_product_")) {
+    const productId = data.replace("reject_product_", "");
+
+    try {
+      // Mahsulotni rad etish
+      await productService.updateProduct(productId, {
+        needsReview: false,
+        isActive: false,
+        rejectedBy: telegramId,
+        rejectedAt: new Date(),
+        rejectionReason: "Admin tomonidan rad etildi",
+      });
+
+      await safeEditMessage(
+        `❌ <b>Mahsulot rad etildi!</b>\n\n` +
+          `Mahsulot ID: <code>${productId}</code>\n\n` +
+          `Mahsulot endi faol emas va mijozlar ko'ra olmaydi.`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "⏳ Ko'rib chiqish kerak",
+                  callback_data: "review_pending_products",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Mahsulotni rad etishda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Mahsulotni rad etishda xato yuz berdi: ${error.message}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `reject_product_${productId}`,
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== MAHSULOT TAHRIRLASH =====
+
+  if (data.startsWith("admin_edit_product_")) {
+    const productId = data.replace("admin_edit_product_", "");
+
+    try {
+      // Mahsulot ma'lumotlarini olish
+      const product = await productService.getProductById(productId);
+
+      if (!product) {
+        await safeEditMessage(
+          `❌ <b>Mahsulot topilmadi!</b>\n\n` +
+            `Mahsulot ID: <code>${productId}</code>\n\n` +
+            `Keyingi amalni tanlang:`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "📦 Mahsulotlarni ko'rish",
+                    callback_data: "view_products",
+                  },
+                  {
+                    text: "🔙 Orqaga qaytish",
+                    callback_data: "admin_view_products_in_category_all",
+                  },
+                ],
+                [
+                  {
+                    text: "🏠 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      await safeEditMessage(
+        `✏️ <b>Mahsulotni tahrirlash</b>\n\n` +
+          `📦 <b>Nomi:</b> ${product.name}\n` +
+          `💰 <b>Narxi:</b> ${product.price} so'm\n` +
+          `📝 <b>Tavsif:</b> ${product.description || "Tavsif yo'q"}\n` +
+          `🏷️ <b>Kategoriya:</b> ${product.category || "Kategoriyasiz"}\n` +
+          `📦 <b>Zapas:</b> ${product.stock || 0}\n\n` +
+          `Mahsulotni tahrirlash uchun Web App admin panelini ishlatishingiz mumkin:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🌐 Admin Web App",
+                  web_app: {
+                    url: "https://den-aroma-webapp-1.vercel.app/admin-panel.html",
+                  },
+                },
+                {
+                  text: "🔙 Orqaga qaytish",
+                  callback_data: "admin_view_products_in_category_all",
+                },
+              ],
+              [
+                {
+                  text: "📦 Mahsulotlarni ko'rish",
+                  callback_data: "view_products",
+                },
+              ],
+              [
+                {
+                  text: "🏠 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Mahsulotni tahrirlashda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Mahsulot ma'lumotlarini olishda xato yuz berdi: ${error.message}\n\n` +
+          `Iltimos, keyingi amalni tanlang:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `admin_edit_product_${productId}`,
+                },
+                {
+                  text: "🔙 Orqaga qaytish",
+                  callback_data: "admin_view_products_in_category_all",
+                },
+              ],
+              [
+                {
+                  text: "🏠 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== MAHSULOT O'CHIRISH =====
+
+  if (data.startsWith("admin_delete_product_")) {
+    const productId = data.replace("admin_delete_product_", "");
+
+    try {
+      // Mahsulotni o'chirish
+      await productService.deleteProduct(productId);
+
+      await safeEditMessage(
+        `✅ <b>Mahsulot muvaffaqiyatli o'chirildi!</b>\n\n` +
+          `Mahsulot ID: <code>${productId}</code>\n\n` +
+          `Keyingi amalni tanlang:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "📦 Mahsulotlarni ko'rish",
+                  callback_data: "view_products",
+                },
+                {
+                  text: "🔙 Orqaga qaytish",
+                  callback_data: "admin_view_products_in_category_all",
+                },
+              ],
+              [
+                {
+                  text: "🏠 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Mahsulotni o'chirishda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Mahsulotni o'chirishda xato yuz berdi: ${error.message}\n\n` +
+          `Iltimos, keyingi amalni tanlang:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `admin_delete_product_${productId}`,
+                },
+                {
+                  text: "🔙 Orqaga qaytish",
+                  callback_data: "admin_view_products_in_category_all",
+                },
+              ],
+              [
+                {
+                  text: "🏠 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== KATEGORIYA BOSHQARISH =====
+
+  // Kategoriya qo'shish
+  if (data === "add_category") {
+    await safeEditMessage(
+      `➕ <b>Yangi kategoriya qo'shish</b>\n\n` +
+        `Kategoriya nomini yuboring:\n\n` +
+        `📝 <b>Misol:</b>\n` +
+        `• Atirlar\n` +
+        `• Kosmetika\n` +
+        `• Parfum\n` +
+        `• Boshqa`,
+      {
+        parse_mode: "HTML",
+        reply_markup: {
+          inline_keyboard: [
+            [
+              {
+                text: "🔙 Kategoriyalarga qaytish",
+                callback_data: "manage_categories",
+              },
+            ],
+            [
+              {
+                text: "🔙 Admin paneliga qaytish",
+                callback_data: "back_to_admin_main",
+              },
+            ],
+          ],
+        },
+      }
+    );
+
+    // Foydalanuvchi holatini o'rnatish
+    global.userStates = global.userStates || {};
+    global.userStates[telegramId] = {
+      step: "waiting_category_name",
+      categoryData: {},
+    };
+
+    return true;
+  }
+
+  // Kategoriyalarni ko'rish
+  if (data === "view_categories") {
+    try {
+      const categories = await categoryService.getAllCategories();
+
+      if (!categories || categories.length === 0) {
+        await safeEditMessage(
+          `📂 <b>Kategoriyalar</b>\n\n` +
+            `Hali hech qanday kategoriya qo'shilmagan.`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "➕ Kategoriya qo'shish",
+                    callback_data: "add_category",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Kategoriyalarga qaytish",
+                    callback_data: "manage_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      let messageText = `📂 <b>Barcha kategoriyalar:</b>\n\n`;
+      const inlineKeyboard = [];
+
+      categories.forEach((category, index) => {
+        const categoryNumber = index + 1;
+        messageText += `<b>${categoryNumber}. ${category.name}</b>\n`;
+        messageText += `📦 Mahsulotlar: ${category.productCount || 0}\n\n`;
+
+        // Har bir kategoriya uchun tugmalar
+        inlineKeyboard.push([
+          {
+            text: `✏️ ${categoryNumber}. Tahrirlash`,
+            callback_data: `edit_category_${category._id}`,
+          },
+          {
+            text: `🗑️ ${categoryNumber}. O'chirish`,
+            callback_data: `delete_category_${category._id}`,
+          },
+        ]);
+      });
+
+      // Orqaga qaytish tugmalari
+      inlineKeyboard.push([
+        {
+          text: "➕ Kategoriya qo'shish",
+          callback_data: "add_category",
+        },
+      ]);
+      inlineKeyboard.push([
+        {
+          text: "🔙 Kategoriyalarga qaytish",
+          callback_data: "manage_categories",
+        },
+      ]);
+      inlineKeyboard.push([
+        {
+          text: "🔙 Admin paneliga qaytish",
+          callback_data: "back_to_admin_main",
+        },
+      ]);
+
+      await safeEditMessage(messageText, {
+        parse_mode: "HTML",
+        reply_markup: { inline_keyboard: inlineKeyboard },
+      });
+    } catch (error) {
+      console.error("Kategoriyalarni ko'rishda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Kategoriyalarni ko'rishda xato yuz berdi: ${error.message}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: "view_categories",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== KATEGORIYA TAHRIRLASH =====
+
+  // Kategoriya tahrirlash
+  if (data.startsWith("edit_category_")) {
+    const categoryId = data.replace("edit_category_", "");
+
+    try {
+      // Kategoriya ma'lumotlarini olish
+      const category = await categoryService.getCategoryById(categoryId);
+
+      if (!category) {
+        await safeEditMessage(
+          `❌ <b>Kategoriya topilmadi!</b>\n\n` +
+            `Kategoriya ID: <code>${categoryId}</code>\n\n` +
+            `Kategoriyalar ro'yxatiga qaytish uchun tugmani bosing:`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "👁️ Kategoriyalarni ko'rish",
+                    callback_data: "view_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      await safeEditMessage(
+        `✏️ <b>Kategoriyani tahrirlash</b>\n\n` +
+          `📂 <b>Hozirgi nomi:</b> ${category.name}\n` +
+          `🆔 <b>ID:</b> <code>${categoryId}</code>\n\n` +
+          `Yangi nomni yuboring:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔙 Kategoriyalarga qaytish",
+                  callback_data: "view_categories",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+
+      // Foydalanuvchi holatini o'rnatish
+      global.userStates = global.userStates || {};
+      global.userStates[telegramId] = {
+        step: "waiting_category_edit_name",
+        categoryData: { categoryId: categoryId, oldName: category.name },
+      };
+
+      return true;
+    } catch (error) {
+      console.error("Kategoriyani tahrirlashda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Kategoriya ma'lumotlarini olishda xato yuz berdi: ${error.message}`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `edit_category_${categoryId}`,
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== KATEGORIYA O'CHIRISH TASDIQLASH =====
+
+  // Kategoriya o'chirishni tasdiqlash
+  if (data.startsWith("confirm_delete_category_")) {
+    const categoryId = data.replace("confirm_delete_category_", "");
+
+    try {
+      // Kategoriya ma'lumotlarini olish
+      const category = await categoryService.getCategoryById(categoryId);
+
+      if (!category) {
+        await safeEditMessage(
+          `❌ <b>Kategoriya topilmadi!</b>\n\n` +
+            `Kategoriya ID: <code>${categoryId}</code>\n\n` +
+            `Kategoriyalar ro'yxatiga qaytish uchun tugmani bosing:`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "👁️ Kategoriyalarni ko'rish",
+                    callback_data: "view_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      // Kategoriyada mahsulotlar bor-yo'qligini tekshirish
+      const productsInCategory = await productService.getProductsByCategoryId(
+        categoryId
+      );
+
+      if (productsInCategory && productsInCategory.length > 0) {
+        await safeEditMessage(
+          `⚠️ <b>Kategoriyani o'chirish mumkin emas!</b>\n\n` +
+            `📂 <b>Kategoriya:</b> ${category.name}\n` +
+            `📦 <b>Mahsulotlar soni:</b> ${productsInCategory.length}\n\n` +
+            `❌ Bu kategoriyada mahsulotlar mavjud. Avval mahsulotlarni boshqa kategoriyaga ko'chiring yoki o'chiring.`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "👁️ Kategoriyalarni ko'rish",
+                    callback_data: "view_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      // Kategoriyani o'chirish
+      await categoryService.deleteCategory(categoryId);
+
+      await safeEditMessage(
+        `✅ <b>Kategoriya muvaffaqiyatli o'chirildi!</b>\n\n` +
+          `📂 <b>Nomi:</b> ${category.name}\n` +
+          `🆔 <b>ID:</b> <code>${categoryId}</code>\n\n` +
+          `Kategoriyalar ro'yxatiga qaytish uchun tugmani bosing:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "👁️ Kategoriyalarni ko'rish",
+                  callback_data: "view_categories",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Kategoriyani o'chirishda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Kategoriyani o'chirishda xato yuz berdi: ${error.message}\n\n` +
+          `Iltimos, qaytadan urinib ko'ring:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `confirm_delete_category_${categoryId}`,
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    }
+    return true;
+  }
+
+  // ===== KATEGORIYA O'CHIRISH =====
+
+  // Kategoriya o'chirish
+  if (data.startsWith("delete_category_")) {
+    const categoryId = data.replace("delete_category_", "");
+
+    try {
+      // Kategoriya ma'lumotlarini olish
+      const category = await categoryService.getCategoryById(categoryId);
+
+      if (!category) {
+        await safeEditMessage(
+          `❌ <b>Kategoriya topilmadi!</b>\n\n` +
+            `Kategoriya ID: <code>${categoryId}</code>\n\n` +
+            `Kategoriyalar ro'yxatiga qaytish uchun tugmani bosing:`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "👁️ Kategoriyalarni ko'rish",
+                    callback_data: "view_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      // Kategoriyada mahsulotlar bor-yo'qligini tekshirish
+      const productsInCategory = await productService.getProductsByCategoryId(
+        categoryId
+      );
+
+      if (productsInCategory && productsInCategory.length > 0) {
+        await safeEditMessage(
+          `⚠️ <b>Kategoriyani o'chirish mumkin emas!</b>\n\n` +
+            `📂 <b>Kategoriya:</b> ${category.name}\n` +
+            `📦 <b>Mahsulotlar soni:</b> ${productsInCategory.length}\n\n` +
+            `❌ Bu kategoriyada mahsulotlar mavjud. Avval mahsulotlarni boshqa kategoriyaga ko'chiring yoki o'chiring.`,
+          {
+            parse_mode: "HTML",
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  {
+                    text: "👁️ Kategoriyalarni ko'rish",
+                    callback_data: "view_categories",
+                  },
+                ],
+                [
+                  {
+                    text: "🔙 Admin paneliga qaytish",
+                    callback_data: "back_to_admin_main",
+                  },
+                ],
+              ],
+            },
+          }
+        );
+        return true;
+      }
+
+      // Kategoriyani o'chirish
+      await categoryService.deleteCategory(categoryId);
+
+      await safeEditMessage(
+        `✅ <b>Kategoriya muvaffaqiyatli o'chirildi!</b>\n\n` +
+          `📂 <b>Nomi:</b> ${category.name}\n` +
+          `🆔 <b>ID:</b> <code>${categoryId}</code>\n\n` +
+          `Kategoriyalar ro'yxatiga qaytish uchun tugmani bosing:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "👁️ Kategoriyalarni ko'rish",
+                  callback_data: "view_categories",
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Kategoriyani o'chirishda xato:", error);
+      await safeEditMessage(
+        `❌ <b>Xato!</b>\n\n` +
+          `Kategoriyani o'chirishda xato yuz berdi: ${error.message}\n\n` +
+          `Iltimos, qaytadan urinib ko'ring:`,
+        {
+          parse_mode: "HTML",
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "🔄 Qaytadan urinish",
+                  callback_data: `delete_category_${categoryId}`,
+                },
+              ],
+              [
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
                 },
               ],
             ],

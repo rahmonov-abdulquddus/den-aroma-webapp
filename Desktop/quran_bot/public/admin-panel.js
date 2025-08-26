@@ -1,30 +1,25 @@
+// ===== ADMIN PANEL - JAVASCRIPT =====
+
 // Telegram Web App'ni ishga tushirish
-const tg = window.Telegram.WebApp;
-tg.expand();
-
-// API URL
-const API_BASE_URL = "http://localhost:3002/api";
-
-// Asosiy ma'lumotlar
-let currentTab = "dashboard";
-let products = [];
+let tg;
 let categories = [];
-let pendingProducts = [];
+let products = [];
+
+// API URL'lar
+const API_BASE_URL = "https://den-aroma-webapp-1.vercel.app/api";
+const WEB_APP_URL = "https://den-aroma-webapp-1.vercel.app";
 
 // Sahifa yuklanganda
-document.addEventListener("DOMContentLoaded", async () => {
-  console.log("Admin Panel yuklandi!");
+document.addEventListener("DOMContentLoaded", async function () {
+  // Telegram Web App'ni ishga tushirish
+  tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
 
-  // Statistikalarni yuklash
+  // Ma'lumotlarni yuklash
   await loadStats();
-
-  // Kategoriyalarni yuklash
   await loadCategories();
-
-  // Mahsulotlarni yuklash
   await loadProducts();
-
-  // Ko'rib chiqilishi kerak mahsulotlarni yuklash
   await loadPendingProducts();
 
   // Form submit event'larini o'rnatish
@@ -114,7 +109,7 @@ async function loadCategories() {
         const option = document.createElement("option");
         option.value = category._id;
         option.textContent = category.name;
-        productCategory.appendChild(option);
+        option.appendChild(document.createTextNode(category.name));
       });
     }
   } catch (error) {
@@ -137,7 +132,7 @@ async function loadProducts() {
 async function loadPendingProducts() {
   try {
     const response = await fetch(`${API_BASE_URL}/products?needsReview=true`);
-    pendingProducts = await response.json();
+    const pendingProducts = await response.json();
     displayPendingProducts(pendingProducts);
   } catch (error) {
     console.error(
@@ -149,149 +144,261 @@ async function loadPendingProducts() {
 
 // Mahsulotlarni ko'rsatish
 function displayProducts(productsToShow) {
-  const grid = document.getElementById("productsGrid");
-  if (!grid) return;
+  const container = document.getElementById("productsContainer");
+  if (!container) return;
 
-  grid.innerHTML = "";
+  container.innerHTML = "";
 
   if (productsToShow.length === 0) {
-    grid.innerHTML = "<p>Mahsulot topilmadi</p>";
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <h3>Mahsulot topilmadi</h3>
+        <p>Hali hech qanday mahsulot qo'shilmagan</p>
+      </div>
+    `;
     return;
   }
 
-  productsToShow.forEach((product) => {
-    const card = document.createElement("div");
-    card.className = "product-card";
+  const table = document.createElement("table");
+  table.className = "data-table";
 
-    card.innerHTML = `
-      <img src="${
-        product.image || "https://via.placeholder.com/300x200?text=No+Image"
-      }" 
-           alt="${product.name}" class="product-image">
-      <div class="product-info">
-        <div class="product-name">${product.name}</div>
-        <div class="product-price">${product.price?.toLocaleString()} so'm</div>
-        <div class="product-actions">
-          <button class="btn-edit" onclick="editProduct('${
-            product._id
-          }')">✏️ Tahrirlash</button>
-          <button class="btn-delete" onclick="deleteProduct('${
-            product._id
-          }')">🗑️ O'chirish</button>
-        </div>
-      </div>
-    `;
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Rasm</th>
+        <th>Nomi</th>
+        <th>Kategoriya</th>
+        <th>Narxi</th>
+        <th>Holati</th>
+        <th>Amallar</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${productsToShow
+        .map(
+          (product) => `
+        <tr>
+          <td>
+            <img src="${
+              product.image || "https://via.placeholder.com/50x50?text=No+Image"
+            }" 
+                 alt="${
+                   product.name
+                 }" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+          </td>
+          <td>${product.name}</td>
+          <td>${getCategoryName(product.category)}</td>
+          <td>${product.price?.toLocaleString()} so'm</td>
+          <td>
+            <span class="status-badge ${
+              product.needsReview
+                ? "status-pending"
+                : product.isActive
+                ? "status-approved"
+                : "status-rejected"
+            }">
+              ${
+                product.needsReview
+                  ? "Ko'rib chiqilishi kerak"
+                  : product.isActive
+                  ? "Faol"
+                  : "Rad etilgan"
+              }
+            </span>
+          </td>
+          <td>
+            <div class="product-actions">
+              <button class="btn btn-primary" onclick="viewProduct('${
+                product._id
+              }')">👁️</button>
+              <button class="btn btn-warning" onclick="editProduct('${
+                product._id
+              }')">✏️</button>
+              <button class="btn btn-danger" onclick="deleteProduct('${
+                product._id
+              }')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  `;
 
-    grid.appendChild(card);
-  });
+  container.appendChild(table);
 }
 
 // Ko'rib chiqilishi kerak mahsulotlarni ko'rsatish
 function displayPendingProducts(pendingProductsToShow) {
-  const grid = document.getElementById("pendingProductsGrid");
-  if (!grid) return;
+  const container = document.getElementById("pendingProductsContainer");
+  if (!container) return;
 
-  grid.innerHTML = "";
+  container.innerHTML = "";
 
   if (pendingProductsToShow.length === 0) {
-    grid.innerHTML = "<p>Ko'rib chiqilishi kerak mahsulot yo'q</p>";
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">⏳</div>
+        <h3>Ko'rib chiqilishi kerak mahsulot yo'q</h3>
+        <p>Barcha mahsulotlar ko'rib chiqilgan</p>
+      </div>
+    `;
     return;
   }
 
-  pendingProductsToShow.forEach((product) => {
-    const card = document.createElement("div");
-    card.className = "product-card";
+  const table = document.createElement("table");
+  table.className = "data-table";
 
-    card.innerHTML = `
-      <img src="${
-        product.image || "https://via.placeholder.com/300x200?text=No+Image"
-      }" 
-           alt="${product.name}" class="product-image">
-      <div class="product-info">
-        <div class="product-name">${product.name}</div>
-        <div class="product-price">${product.price?.toLocaleString()} so'm</div>
-        <div class="product-actions">
-          <button class="btn-edit" onclick="approveProduct('${
-            product._id
-          }')">✅ Tasdiqlash</button>
-          <button class="btn-edit" onclick="editPendingProduct('${
-            product._id
-          }')">✏️ Tahrirlash</button>
-          <button class="btn-delete" onclick="rejectProduct('${
-            product._id
-          }')">❌ Rad etish</button>
-        </div>
-      </div>
-    `;
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Rasm</th>
+        <th>Nomi</th>
+        <th>Kategoriya</th>
+        <th>Narxi</th>
+        <th>Holati</th>
+        <th>Amallar</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${pendingProductsToShow
+        .map(
+          (product) => `
+        <tr>
+          <td>
+            <img src="${
+              product.image || "https://via.placeholder.com/50x50?text=No+Image"
+            }" 
+                 alt="${
+                   product.name
+                 }" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+          </td>
+          <td>${product.name}</td>
+          <td>${getCategoryName(product.category)}</td>
+          <td>${product.price?.toLocaleString()} so'm</td>
+          <td>
+            <span class="status-badge status-pending">Ko'rib chiqilishi kerak</span>
+          </td>
+          <td>
+            <div class="product-actions">
+              <button class="btn btn-success" onclick="approveProduct('${
+                product._id
+              }')">✅</button>
+              <button class="btn btn-warning" onclick="editPendingProduct('${
+                product._id
+              }')">✏️</button>
+              <button class="btn btn-danger" onclick="rejectProduct('${
+                product._id
+              }')">❌</button>
+            </div>
+          </td>
+        </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  `;
 
-    grid.appendChild(card);
-  });
+  container.appendChild(table);
 }
 
 // Kategoriyalarni ko'rsatish
 function displayCategories() {
-  const list = document.getElementById("categoriesList");
-  if (!list) return;
+  const container = document.getElementById("categoriesContainer");
+  if (!container) return;
 
-  list.innerHTML = "";
+  container.innerHTML = "";
 
   if (categories.length === 0) {
-    list.innerHTML = "<p>Kategoriya topilmadi</p>";
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🏷️</div>
+        <h3>Kategoriya topilmadi</h3>
+        <p>Hali hech qanday kategoriya qo'shilmagan</p>
+      </div>
+    `;
     return;
   }
 
-  categories.forEach((category) => {
-    const item = document.createElement("div");
-    item.className = "product-card";
+  const table = document.createElement("table");
+  table.className = "data-table";
 
-    item.innerHTML = `
-      <div class="product-info">
-        <div class="product-name">${category.name}</div>
-        <div class="product-actions">
-          <button class="btn-edit" onclick="editCategory('${category._id}')">✏️ Tahrirlash</button>
-          <button class="btn-delete" onclick="deleteCategory('${category._id}')">🗑️ O'chirish</button>
-        </div>
-      </div>
-    `;
+  table.innerHTML = `
+    <thead>
+      <tr>
+        <th>Nomi</th>
+        <th>Tavsif</th>
+        <th>Mahsulotlar soni</th>
+        <th>Amallar</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${categories
+        .map(
+          (category) => `
+        <tr>
+          <td>${category.name}</td>
+          <td>${category.description || "Tavsif yo'q"}</td>
+          <td>${products.filter((p) => p.category === category._id).length}</td>
+          <td>
+            <div class="product-actions">
+              <button class="btn btn-warning" onclick="editCategory('${
+                category._id
+              }')">✏️</button>
+              <button class="btn btn-danger" onclick="deleteCategory('${
+                category._id
+              }')">🗑️</button>
+            </div>
+          </td>
+        </tr>
+      `
+        )
+        .join("")}
+    </tbody>
+  `;
 
-    list.appendChild(item);
-  });
+  container.appendChild(table);
 }
 
 // Tab ko'rsatish
 function showTab(tabName) {
   // Barcha tab'larni yashirish
-  document.querySelectorAll(".admin-content").forEach((tab) => {
-    tab.classList.add("hidden");
+  const tabs = document.querySelectorAll(".tab-content");
+  tabs.forEach((tab) => {
+    tab.style.display = "none";
   });
 
-  // Barcha tab button'larini inactive qilish
-  document.querySelectorAll(".admin-tab").forEach((tab) => {
-    tab.classList.remove("active");
+  // Barcha tab tugmalarini deaktiv qilish
+  const tabButtons = document.querySelectorAll(".tab-btn");
+  tabButtons.forEach((btn) => {
+    btn.classList.remove("active");
   });
 
   // Tanlangan tab'ni ko'rsatish
-  document.getElementById(`${tabName}-tab`).classList.remove("hidden");
+  const selectedTab = document.getElementById(tabName);
+  if (selectedTab) {
+    selectedTab.style.display = "block";
+  }
 
-  // Tanlangan tab button'ini active qilish
-  event.target.classList.add("active");
-
-  currentTab = tabName;
-
-  // Tab o'zgarganida ma'lumotlarni yangilash
-  if (tabName === "products") {
-    loadProducts();
-  } else if (tabName === "categories") {
-    loadCategories();
-    displayCategories();
-  } else if (tabName === "pending") {
-    loadPendingProducts();
-  } else if (tabName === "dashboard") {
-    loadStats();
+  // Tanlangan tab tugmasini aktiv qilish
+  const selectedButton = document.querySelector(
+    `[onclick="showTab('${tabName}')"]`
+  );
+  if (selectedButton) {
+    selectedButton.classList.add("active");
   }
 }
 
-// Mahsulot qidirish
+// Kategoriya nomini olish
+function getCategoryName(categoryId) {
+  if (!categoryId) return "Kategoriyasiz";
+  const category = categories.find((c) => c._id === categoryId);
+  return category ? category.name : "Kategoriyasiz";
+}
+
+// Qidiruv va filtrlash
 function searchProducts() {
   const searchTerm = document
     .getElementById("productSearch")
@@ -300,415 +407,376 @@ function searchProducts() {
 
   let filteredProducts = products;
 
-  // Kategoriya bo'yicha filtrlash
-  if (categoryFilter) {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.categoryId === categoryFilter
+  if (searchTerm) {
+    filteredProducts = filteredProducts.filter((product) =>
+      product.name.toLowerCase().includes(searchTerm)
     );
   }
 
-  // Qidiruv so'zi bo'yicha filtrlash
-  if (searchTerm) {
+  if (categoryFilter) {
     filteredProducts = filteredProducts.filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.description?.toLowerCase().includes(searchTerm)
+      (product) => product.category === categoryFilter
     );
   }
 
   displayProducts(filteredProducts);
 }
 
-// Ko'rib chiqilishi kerak mahsulotlarni qidirish
 function searchPendingProducts() {
   const searchTerm = document
     .getElementById("pendingSearch")
     .value.toLowerCase();
   const categoryFilter = document.getElementById("pendingCategoryFilter").value;
 
-  let filteredProducts = pendingProducts;
-
-  // Kategoriya bo'yicha filtrlash
-  if (categoryFilter) {
-    filteredProducts = filteredProducts.filter(
-      (product) => product.categoryId === categoryFilter
-    );
-  }
-
-  // Qidiruv so'zi bo'yicha filtrlash
-  if (searchTerm) {
-    filteredProducts = filteredProducts.filter(
-      (product) =>
-        product.name.toLowerCase().includes(searchTerm) ||
-        product.description?.toLowerCase().includes(searchTerm)
-    );
-  }
-
-  displayPendingProducts(filteredProducts);
+  // Ko'rib chiqilishi kerak mahsulotlarni qayta yuklash
+  loadPendingProducts();
 }
 
-// Form event'larini o'rnatish
+// Form event'larni o'rnatish
 function setupFormEvents() {
+  // Mahsulot qo'shish formasi
   const addProductForm = document.getElementById("addProductForm");
   if (addProductForm) {
     addProductForm.addEventListener("submit", async (e) => {
       e.preventDefault();
-      await submitProduct();
+
+      const formData = {
+        name: document.getElementById("productName").value,
+        description: document.getElementById("productDescription").value,
+        price: parseFloat(document.getElementById("productPrice").value),
+        category: document.getElementById("productCategory").value,
+        image: document.getElementById("productImage").value || "",
+        stock: parseInt(document.getElementById("productStock").value) || 0,
+        isActive: true,
+        needsReview: false,
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/products`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
+
+        if (response.ok) {
+          showMessage("✅ Mahsulot muvaffaqiyatli qo'shildi!", "success");
+          addProductForm.reset();
+          await loadProducts();
+          await loadStats();
+        } else {
+          showMessage("❌ Mahsulot qo'shishda xatolik!", "error");
+        }
+      } catch (error) {
+        console.error("Xatolik:", error);
+        showMessage("❌ Xatolik yuz berdi!", "error");
+      }
     });
   }
-}
 
-// Mahsulot qo'shish
-async function submitProduct() {
-  try {
-    const productData = {
-      name: document.getElementById("productName").value,
-      description: document.getElementById("productDescription").value,
-      price: parseInt(document.getElementById("productPrice").value),
-      categoryId: document.getElementById("productCategory").value || null,
-      image: document.getElementById("productImage").value || null,
-      stock: parseInt(document.getElementById("productStock").value) || 1,
-    };
+  // Kategoriya qo'shish formasi
+  const addCategoryForm = document.getElementById("addCategoryForm");
+  if (addCategoryForm) {
+    addCategoryForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
 
-    const data = {
-      action: "admin_action",
-      command: "add_product",
-      productData: productData,
-    };
+      const formData = {
+        name: document.getElementById("categoryName").value,
+        description: document.getElementById("categoryDescription").value,
+      };
 
-    tg.sendData(JSON.stringify(data));
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formData),
+        });
 
-    // Form'ni tozalash
-    document.getElementById("addProductForm").reset();
+        if (response.ok) {
+          showMessage("✅ Kategoriya muvaffaqiyatli qo'shildi!", "success");
+          addCategoryForm.reset();
+          hideAddCategoryForm();
+          await loadCategories();
+          await loadStats();
+        } else {
+          showMessage("❌ Kategoriya qo'shishda xatolik!", "error");
+        }
+      } catch (error) {
+        console.error("Xatolik:", error);
+        showMessage("❌ Xatolik yuz berdi!", "error");
+      }
+    });
+  }
 
-    // Ma'lumotlarni yangilash
-    await loadProducts();
-    await loadStats();
+  // Qidiruv event'lari
+  const productSearch = document.getElementById("productSearch");
+  if (productSearch) {
+    productSearch.addEventListener("input", searchProducts);
+  }
 
-    showSuccessMessage("Mahsulot muvaffaqiyatli qo'shildi!");
-  } catch (error) {
-    console.error("Mahsulot qo'shishda xatolik:", error);
-    showErrorMessage("Mahsulot qo'shishda xatolik yuz berdi");
+  const pendingSearch = document.getElementById("pendingSearch");
+  if (pendingSearch) {
+    pendingSearch.addEventListener("input", searchPendingProducts);
   }
 }
 
-// Mahsulotni tahrirlash
-async function editProduct(productId) {
+// Kategoriya qo'shish formasi
+function showAddCategoryForm() {
+  document.getElementById("addCategoryModal").style.display = "block";
+}
+
+function hideAddCategoryForm() {
+  document.getElementById("addCategoryModal").style.display = "none";
+}
+
+// Mahsulot amallari
+async function approveProduct(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        needsReview: false,
+        isActive: true,
+        approvedBy: "admin",
+      }),
+    });
+
+    if (response.ok) {
+      showMessage("✅ Mahsulot tasdiqlandi!", "success");
+      await loadPendingProducts();
+      await loadStats();
+    } else {
+      showMessage("❌ Tasdiqlashda xatolik!", "error");
+    }
+  } catch (error) {
+    console.error("Xatolik:", error);
+    showMessage("❌ Xatolik yuz berdi!", "error");
+  }
+}
+
+async function rejectProduct(productId) {
+  const reason = prompt("Rad etish sababi:");
+  if (!reason) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        needsReview: false,
+        isActive: false,
+        rejectedBy: "admin",
+        rejectionReason: reason,
+      }),
+    });
+
+    if (response.ok) {
+      showMessage("❌ Mahsulot rad etildi!", "success");
+      await loadPendingProducts();
+      await loadStats();
+    } else {
+      showMessage("❌ Rad etishda xatolik!", "error");
+    }
+  } catch (error) {
+    console.error("Xatolik:", error);
+    showMessage("❌ Xatolik yuz berdi!", "error");
+  }
+}
+
+async function editPendingProduct(productId) {
   const product = products.find((p) => p._id === productId);
   if (!product) return;
-
-  // Tahrirlash form'ini ko'rsatish
-  showTab("add-product");
 
   // Form'ni to'ldirish
   document.getElementById("productName").value = product.name;
   document.getElementById("productDescription").value =
     product.description || "";
-  document.getElementById("productPrice").value = product.price;
-  document.getElementById("productCategory").value = product.categoryId || "";
+  document.getElementById("productPrice").value = product.price || "";
+  document.getElementById("productCategory").value = product.category || "";
   document.getElementById("productImage").value = product.image || "";
-  document.getElementById("productStock").value = product.stock || 1;
+  document.getElementById("productStock").value = product.stock || 0;
 
-  // Form submit event'ini o'zgartirish
+  // Add Product tab'ga o'tish
+  showTab("add-product");
+
+  // Form'ni tahrirlash rejimiga o'tkazish
   const form = document.getElementById("addProductForm");
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    await updateProduct(productId);
-  };
+  form.dataset.editMode = "true";
+  form.dataset.editId = productId;
 
-  // Button matnini o'zgartirish
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.textContent = "💾 Mahsulotni yangilash";
+  // Submit button'ni o'zgartirish
+  const submitBtn = form.querySelector("button[type='submit']");
+  submitBtn.textContent = "✏️ Mahsulotni tahrirlash";
 }
 
-// Mahsulotni yangilash
-async function updateProduct(productId) {
-  try {
-    const productData = {
-      name: document.getElementById("productName").value,
-      description: document.getElementById("productDescription").value,
-      price: parseInt(document.getElementById("productPrice").value),
-      categoryId: document.getElementById("productCategory").value || null,
-      image: document.getElementById("productImage").value || null,
-      stock: parseInt(document.getElementById("productStock").value) || 1,
-    };
-
-    const data = {
-      action: "admin_action",
-      command: "edit_product",
-      productId: productId,
-      productData: productData,
-    };
-
-    tg.sendData(JSON.stringify(data));
-
-    // Form'ni tozalash va mahsulotlar tab'iga qaytish
-    document.getElementById("addProductForm").reset();
-    showTab("products");
-
-    // Ma'lumotlarni yangilash
-    await loadProducts();
-    await loadStats();
-
-    showSuccessMessage("Mahsulot muvaffaqiyatli yangilandi!");
-  } catch (error) {
-    console.error("Mahsulotni yangilashda xatolik:", error);
-    showErrorMessage("Mahsulotni yangilashda xatolik yuz berdi");
-  }
-}
-
-// Mahsulotni o'chirish
 async function deleteProduct(productId) {
   if (!confirm("Bu mahsulotni o'chirishni xohlaysizmi?")) return;
 
   try {
-    const data = {
-      action: "admin_action",
-      command: "delete_product",
-      productId: productId,
-    };
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: "DELETE",
+    });
 
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadProducts();
-    await loadStats();
-
-    showSuccessMessage("Mahsulot muvaffaqiyatli o'chirildi!");
+    if (response.ok) {
+      showMessage("🗑️ Mahsulot o'chirildi!", "success");
+      await loadProducts();
+      await loadStats();
+    } else {
+      showMessage("❌ O'chirishda xatolik!", "error");
+    }
   } catch (error) {
-    console.error("Mahsulotni o'chirishda xatolik:", error);
-    showErrorMessage("Mahsulotni o'chirishda xatolik yuz berdi");
+    console.error("Xatolik:", error);
+    showMessage("❌ Xatolik yuz berdi!", "error");
   }
 }
 
-// Mahsulotni tasdiqlash
-async function approveProduct(productId) {
-  if (!confirm("Bu mahsulotni tasdiqlashni xohlaysizmi?")) return;
-
-  try {
-    const data = {
-      action: "admin_action",
-      command: "approve_product",
-      productId: productId,
-    };
-
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadPendingProducts();
-    await loadProducts();
-    await loadStats();
-
-    showSuccessMessage(
-      "Mahsulot muvaffaqiyatli tasdiqlandi va Web App'ga qo'shildi!"
-    );
-  } catch (error) {
-    console.error("Mahsulotni tasdiqlashda xatolik:", error);
-    showErrorMessage("Mahsulotni tasdiqlashda xatolik yuz berdi");
-  }
-}
-
-// Mahsulotni rad etish
-async function rejectProduct(productId) {
-  const reason = prompt("Rad etish sababini kiriting:");
-  if (!reason || reason.trim() === "") return;
-
-  try {
-    const data = {
-      action: "admin_action",
-      command: "reject_product",
-      productId: productId,
-      reason: reason.trim(),
-    };
-
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadPendingProducts();
-    await loadStats();
-
-    showSuccessMessage("Mahsulot rad etildi!");
-  } catch (error) {
-    console.error("Mahsulotni rad etishda xatolik:", error);
-    showErrorMessage("Mahsulotni rad etishda xatolik yuz berdi");
-  }
-}
-
-// Ko'rib chiqilishi kerak mahsulotni tahrirlash
-async function editPendingProduct(productId) {
-  const product = pendingProducts.find((p) => p._id === productId);
+async function editProduct(productId) {
+  const product = products.find((p) => p._id === productId);
   if (!product) return;
 
-  // Tahrirlash form'ini ko'rsatish
-  showTab("add-product");
-
-  // Form'ni to'ldirish
-  document.getElementById("productName").value = product.name;
-  document.getElementById("productDescription").value =
-    product.description || "";
-  document.getElementById("productPrice").value = product.price;
-  document.getElementById("productCategory").value = product.categoryId || "";
-  document.getElementById("productImage").value = product.image || "";
-  document.getElementById("productStock").value = product.stock || 1;
-
-  // Form submit event'ini o'zgartirish
-  const form = document.getElementById("addProductForm");
-  form.onsubmit = async (e) => {
-    e.preventDefault();
-    await updatePendingProduct(productId);
-  };
-
-  // Button matnini o'zgartirish
-  const submitBtn = form.querySelector('button[type="submit"]');
-  submitBtn.textContent = "💾 Mahsulotni yangilash va tasdiqlash";
+  // Form'ni to'ldirish va tahrirlash rejimiga o'tkazish
+  editPendingProduct(productId);
 }
 
-// Ko'rib chiqilishi kerak mahsulotni yangilash
-async function updatePendingProduct(productId) {
-  try {
-    const productData = {
-      name: document.getElementById("productName").value,
-      description: document.getElementById("productDescription").value,
-      price: parseInt(document.getElementById("productPrice").value),
-      categoryId: document.getElementById("productCategory").value || null,
-      image: document.getElementById("productImage").value || null,
-      stock: parseInt(document.getElementById("productStock").value) || 1,
-    };
+async function viewProduct(productId) {
+  const product = products.find((p) => p._id === productId);
+  if (!product) return;
 
-    const data = {
-      action: "admin_action",
-      command: "update_pending_product",
-      productId: productId,
-      productData: productData,
-    };
+  // Bot'ga mahsulot ko'rish haqida ma'lumot yuborish
+  sendToBot({
+    action: "view_product",
+    productId: productId,
+    productName: product.name,
+  });
 
-    tg.sendData(JSON.stringify(data));
-
-    // Form'ni tozalash va ko'rib chiqilishi kerak tab'iga qaytish
-    document.getElementById("addProductForm").reset();
-    showTab("pending");
-
-    // Ma'lumotlarni yangilash
-    await loadPendingProducts();
-    await loadProducts();
-    await loadStats();
-
-    showSuccessMessage("Mahsulot muvaffaqiyatli yangilandi va tasdiqlandi!");
-  } catch (error) {
-    console.error("Mahsulotni yangilashda xatolik:", error);
-    showErrorMessage("Mahsulotni yangilashda xatolik yuz berdi");
-  }
+  showMessage(`👁️ "${product.name}" mahsuloti ko'rilmoqda`, "success");
 }
 
-// Kategoriya qo'shish
-async function addCategory() {
-  const name = prompt("Kategoriya nomini kiriting:");
-  if (!name || name.trim() === "") return;
-
-  try {
-    const data = {
-      action: "admin_action",
-      command: "add_category",
-      categoryData: { name: name.trim() },
-    };
-
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadCategories();
-    await loadStats();
-
-    showSuccessMessage("Kategoriya muvaffaqiyatli qo'shildi!");
-  } catch (error) {
-    console.error("Kategoriya qo'shishda xatolik:", error);
-    showErrorMessage("Kategoriya qo'shishda xatolik yuz berdi");
-  }
-}
-
-// Kategoriyani tahrirlash
+// Kategoriya amallari
 async function editCategory(categoryId) {
   const category = categories.find((c) => c._id === categoryId);
   if (!category) return;
 
-  const newName = prompt("Yangi kategoriya nomini kiriting:", category.name);
-  if (!newName || newName.trim() === "") return;
+  const newName = prompt("Yangi kategoriya nomi:", category.name);
+  if (!newName) return;
 
   try {
-    const data = {
-      action: "admin_action",
-      command: "edit_category",
-      categoryId: categoryId,
-      categoryData: { name: newName.trim() },
-    };
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: newName,
+        description: category.description,
+      }),
+    });
 
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadCategories();
-    await loadStats();
-
-    showSuccessMessage("Kategoriya muvaffaqiyatli yangilandi!");
+    if (response.ok) {
+      showMessage("✏️ Kategoriya tahrirlandi!", "success");
+      await loadCategories();
+      await loadStats();
+    } else {
+      showMessage("❌ Tahrirlashda xatolik!", "error");
+    }
   } catch (error) {
-    console.error("Kategoriyani yangilashda xatolik:", error);
-    showErrorMessage("Kategoriyani yangilashda xatolik yuz berdi");
+    console.error("Xatolik:", error);
+    showMessage("❌ Xatolik yuz berdi!", "error");
   }
 }
 
-// Kategoriyani o'chirish
 async function deleteCategory(categoryId) {
-  if (!confirm("Bu kategoriyani o'chirishni xohlaysizmi?")) return;
+  const category = categories.find((c) => c._id === categoryId);
+  if (!category) return;
+
+  // Kategoriyada mahsulotlar borligini tekshirish
+  const productsInCategory = products.filter((p) => p.category === categoryId);
+  if (productsInCategory.length > 0) {
+    showMessage(
+      `⚠️ Bu kategoriyada ${productsInCategory.length} ta mahsulot bor. Avval mahsulotlarni boshqa kategoriyaga ko'chiring!`,
+      "warning"
+    );
+    return;
+  }
+
+  if (!confirm(`"${category.name}" kategoriyasini o'chirishni xohlaysizmi?`))
+    return;
 
   try {
-    const data = {
-      action: "admin_action",
-      command: "delete_category",
-      categoryId: categoryId,
-    };
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+      method: "DELETE",
+    });
 
-    tg.sendData(JSON.stringify(data));
-
-    // Ma'lumotlarni yangilash
-    await loadCategories();
-    await loadStats();
-
-    showSuccessMessage("Kategoriya muvaffaqiyatli o'chirildi!");
+    if (response.ok) {
+      showMessage("🗑️ Kategoriya o'chirildi!", "success");
+      await loadCategories();
+      await loadStats();
+    } else {
+      showMessage("❌ O'chirishda xatolik!", "error");
+    }
   } catch (error) {
-    console.error("Kategoriyani o'chirishda xatolik:", error);
-    showErrorMessage("Kategoriyani o'chirishda xatolik yuz berdi");
+    console.error("Xatolik:", error);
+    showMessage("❌ Xatolik yuz berdi!", "error");
+  }
+}
+
+// Bot'ga ma'lumot yuborish
+function sendToBot(data) {
+  if (tg && tg.sendData) {
+    tg.sendData(JSON.stringify(data));
   }
 }
 
 // Xabar ko'rsatish
-function showSuccessMessage(message) {
-  showMessage(message, "success");
-}
+function showMessage(message, type = "info") {
+  const container = document.getElementById("messagesContainer");
+  if (!container) return;
 
-function showErrorMessage(message) {
-  showMessage(message, "error");
-}
-
-function showMessage(message, type) {
-  // Mavjud xabarni o'chirish
-  const existingMessage = document.querySelector(".message");
-  if (existingMessage) {
-    existingMessage.remove();
-  }
-
-  // Yangi xabar yaratish
   const messageDiv = document.createElement("div");
   messageDiv.className = `message ${type}`;
   messageDiv.textContent = message;
 
-  // Xabarni ko'rsatish
-  const currentTab = document.getElementById(`${currentTab}-tab`);
-  if (currentTab) {
-    currentTab.insertBefore(messageDiv, currentTab.firstChild);
+  container.appendChild(messageDiv);
 
-    // 5 soniyadan keyin xabarni o'chirish
-    setTimeout(() => {
-      if (messageDiv.parentNode) {
-        messageDiv.remove();
-      }
-    }, 5000);
-  }
+  // 5 soniyadan keyin xabarni o'chirish
+  setTimeout(() => {
+    messageDiv.remove();
+  }, 5000);
 }
+
+// Qidiruv va filtrlash event'lari
+document.addEventListener("DOMContentLoaded", function () {
+  // Mahsulot qidiruv
+  const productSearch = document.getElementById("productSearch");
+  if (productSearch) {
+    productSearch.addEventListener("input", searchProducts);
+  }
+
+  // Ko'rib chiqilishi kerak mahsulotlar qidiruv
+  const pendingSearch = document.getElementById("pendingSearch");
+  if (pendingSearch) {
+    pendingSearch.addEventListener("input", searchPendingProducts);
+  }
+
+  // Kategoriya filtrlari
+  const categoryFilter = document.getElementById("categoryFilter");
+  if (categoryFilter) {
+    categoryFilter.addEventListener("change", searchProducts);
+  }
+
+  const pendingCategoryFilter = document.getElementById(
+    "pendingCategoryFilter"
+  );
+  if (pendingCategoryFilter) {
+    pendingCategoryFilter.addEventListener("change", searchPendingProducts);
+  }
+});
+

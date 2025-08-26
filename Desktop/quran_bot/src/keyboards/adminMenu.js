@@ -44,6 +44,12 @@ export function adminMainMenuInlineKeyboard(
       [{ text: "⭐ Mijoz fikrlari", callback_data: "view_feedbacks" }],
       [
         {
+          text: "🌐 Admin Web App",
+          web_app: {
+            url: "https://den-aroma-webapp-1.vercel.app/admin-panel.html",
+          },
+        },
+        {
           text: "🏠 Asosiy menyuga qaytish",
           callback_data: "admin_to_main_menu",
         },

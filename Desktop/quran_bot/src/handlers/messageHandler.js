@@ -1866,7 +1866,29 @@ const handleMessage = async (bot, msg) => {
           `📦 Nomi: ${name}\n` +
           `💰 Narx: ${price} so'm\n` +
           `📝 Tavsif: ${description.substring(0, 100)}...\n` +
-          `📂 Taklif qilingan kategoriya: ${categoryName}`
+          `📂 Taklif qilingan kategoriya: ${categoryName}`,
+        {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                {
+                  text: "⏳ Ko'rib chiqilishi kerak",
+                  callback_data: "review_pending_products",
+                },
+              ],
+              [
+                {
+                  text: "📝 Post tashlash",
+                  callback_data: "send_post",
+                },
+                {
+                  text: "🔙 Admin paneliga qaytish",
+                  callback_data: "back_to_admin_main",
+                },
+              ],
+            ],
+          },
+        }
       );
 
       console.log(`Forward qilingan post qayta ishlandi: ${name}`);
